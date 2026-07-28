@@ -45,4 +45,4 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/demo-backend:latest
+            ghcr.io/banchereau/demo-backend:latest
