@@ -1,17 +1,24 @@
 from fastapi import FastAPI
 
+
+APP_NAME = "demo-backend"
+APP_VERSION = "1.0.0"
+
+
 app = FastAPI(
     title="Demo Backend",
     description="Backend de démonstration DevSecOps Kubernetes",
-    version="1.0.0",
+    version=APP_VERSION,
 )
 
 
 @app.get("/")
 def root():
     return {
+        "application": APP_NAME,
+        "status": "running",
         "message": "Demo Backend running",
-        "version": "1.0.0"
+        "version": APP_VERSION,
     }
 
 
@@ -25,6 +32,6 @@ def health():
 @app.get("/version")
 def version():
     return {
-        "application": "demo-backend",
-        "version": "1.0.0"
+        "application": APP_NAME,
+        "version": APP_VERSION
     }

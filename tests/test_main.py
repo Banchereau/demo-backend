@@ -10,7 +10,13 @@ def test_root():
     response = client.get("/")
 
     assert response.status_code == 200
-    assert response.json()["message"] == "Demo Backend running"
+
+    data = response.json()
+
+    assert data["application"] == "demo-backend"
+    assert data["status"] == "running"
+    assert data["message"] == "Demo Backend running"
+    assert data["version"] == "1.0.0"
 
 
 def test_health():
