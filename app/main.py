@@ -43,14 +43,21 @@ def cluster():
 
         v1 = client.CoreV1Api()
 
-        v1.get_api_resources()
+        nodes = v1.list_node()
+        pods = v1.list_pod_for_all_namespaces()
+        services = v1.list_service_for_all_namespaces()
+        namespaces = v1.list_namespace()
 
         return {
-            "connected": True
+            "nodes": len(nodes.items),
+            "pods": len(pods.items),
+            "services": len(services.items),
+            "namespaces": len(namespaces.items),
+            "health": "healthy",
         }
 
     except Exception as e:
         return {
-            "connected": False,
+            "health": "unhealthy",
             "error": str(e)
         }
