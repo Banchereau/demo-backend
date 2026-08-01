@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.api import cluster, health, version
+from app.api import cluster, health, pods, version
 from app.core import APP_NAME, APP_VERSION
 
 app = FastAPI(
@@ -23,3 +23,4 @@ def root():
 app.include_router(health.router)
 app.include_router(version.router)
 app.include_router(cluster.router)
+app.include_router(pods.router)
