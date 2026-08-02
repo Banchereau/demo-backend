@@ -12,6 +12,15 @@ def get_core_v1_api():
     return client.CoreV1Api()
 
 
+def get_apps_v1_api():
+    try:
+        config.load_incluster_config()
+    except config.ConfigException:
+        config.load_kube_config()
+
+    return client.AppsV1Api()
+
+
 def format_age(created_at):
     if created_at is None:
         return "Unknown"
@@ -107,3 +116,99 @@ def get_services():
         )
 
     return services
+
+def get_deployments():
+    apps_v1 = get_apps_v1_api()
+
+    deployments = []
+
+    for deployment in apps_v1.list_deployment_for_all_namespaces().items:
+
+        replicas = deployment.spec.replicas or 0
+        ready_replicas = (
+            deployment.status.ready_replicas
+            if deployment.status.ready_replicas
+            else 0
+        )
+        available_replicas = (
+            deployment.status.available_replicas
+            if deployment.status.available_replicas
+            else 0
+        )
+
+        strategy = (
+            deployment.spec.strategy.type
+            if deployment.spec.strategy
+            else "Unknown"
+        )
+
+        images = []
+
+        containers = (
+            deployment.spec.template.spec.containers
+            if deployment.spec.template.spec.containers
+            else []
+        )
+
+        for container in containers:
+            images.append(container.image)
+
+        deployments.append(
+            {
+                "name": deployment.metadata.name,
+                "namespace": deployment.metadata.namespace,
+                "replicas": replicas,
+                "ready_replicas": ready_replicas,
+                "available_replicas": available_replicas,
+                "strategy": strategy,
+                "images": ",".join(images),
+            }
+        )
+
+    return deployments
+
+def get_deployments():
+    apps_v1 = get_apps_v1_api()
+
+    deployments = []
+
+    for deployment in apps_v1.list_deployment_for_all_namespaces().items:
+
+        replicas = deployment.spec.replicas or 0
+
+        ready_replicas = (
+            deployment.status.ready_replicas
+            if deployment.status.ready_replicas
+            else 0
+        )
+
+        available_replicas = (
+            deployment.status.available_replicas
+            if deployment.status.available_replicas
+            else 0
+        )
+
+        strategy = (
+            deployment.spec.strategy.type
+            if deployment.spec.strategy
+            else "Unknown"
+        )
+
+        images = []
+
+        for container in deployment.spec.template.spec.containers:
+            images.append(container.image)
+
+        deployments.append(
+            {
+                "name": deployment.metadata.name,
+                "namespace": deployment.metadata.namespace,
+                "replicas": replicas,
+                "ready_replicas": ready_replicas,
+                "available_replicas": available_replicas,
+                "strategy": strategy,
+                "images": ",".join(images),
+            }
+        )
+
+    return deployments
