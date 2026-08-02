@@ -1,34 +1,9 @@
 from unittest.mock import patch
 
-from fastapi.testclient import TestClient
-
-from app.main import app
+from kubernetes.client.exceptions import ApiException
 
 
-client = TestClient(app)
-
-
-def test_root():
-    response = client.get("/")
-
-    assert response.status_code == 200
-
-    data = response.json()
-
-    assert data["application"] == "demo-backend"
-    assert data["status"] == "running"
-    assert data["message"] == "Demo Backend running"
-    assert data["version"] == "1.0.0"
-
-
-def test_health():
-    response = client.get("/health")
-
-    assert response.status_code == 200
-    assert response.json()["status"] == "ok"
-
-
-def test_pods():
+def test_pods(client):
     mock_pods = [
         {
             "name": "demo-frontend-12345",
@@ -53,3 +28,20 @@ def test_pods():
     assert len(data) == 1
     assert data[0]["name"] == "demo-frontend-12345"
     assert data[0]["status"] == "Running"
+
+
+def test_pods_kubernetes_error(client):
+    with patch(
+        "app.api.pods.get_pods",
+        side_effect=ApiException(
+            status=403,
+            reason="Forbidden",
+        ),
+    ):
+        response = client.get("/pods")
+
+    assert response.status_code == 403
+
+    data = response.json()
+
+    assert data["detail"] == "Forbidden"
