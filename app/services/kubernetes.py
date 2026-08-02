@@ -21,6 +21,14 @@ def get_apps_v1_api():
     return client.AppsV1Api()
 
 
+def get_kubernetes_client():
+    try:
+        config.load_incluster_config()
+    except Exception:
+        config.load_kube_config()
+
+    return client.CoreV1Api()
+
 def format_age(created_at):
     if created_at is None:
         return "Unknown"
@@ -212,3 +220,27 @@ def get_deployments():
         )
 
     return deployments
+
+
+def get_namespaces():
+    try:
+        v1 = get_kubernetes_client()
+
+        namespaces = v1.list_namespace()
+
+        result = []
+
+        for ns in namespaces.items:
+            result.append(
+                {
+                    "name": ns.metadata.name,
+                    "status": ns.status.phase,
+                }
+            )
+
+        return result
+
+    except Exception as e:
+        raise RuntimeError(
+            f"Unable to retrieve Kubernetes namespaces: {e}"
+        )
