@@ -80,3 +80,30 @@ def get_pods():
         )
 
     return pods
+
+
+def get_services():
+    v1 = get_core_v1_api()
+
+    services = []
+
+    for service in v1.list_service_for_all_namespaces().items:
+        ports = []
+
+        if service.spec.ports:
+            for port in service.spec.ports:
+                ports.append(
+                    str(port.port)
+                )
+
+        services.append(
+            {
+                "name": service.metadata.name,
+                "namespace": service.metadata.namespace,
+                "type": service.spec.type,
+                "cluster_ip": service.spec.cluster_ip,
+                "ports": ",".join(ports),
+            }
+        )
+
+    return services
