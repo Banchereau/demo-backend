@@ -125,55 +125,6 @@ def get_services():
 
     return services
 
-def get_deployments():
-    apps_v1 = get_apps_v1_api()
-
-    deployments = []
-
-    for deployment in apps_v1.list_deployment_for_all_namespaces().items:
-
-        replicas = deployment.spec.replicas or 0
-        ready_replicas = (
-            deployment.status.ready_replicas
-            if deployment.status.ready_replicas
-            else 0
-        )
-        available_replicas = (
-            deployment.status.available_replicas
-            if deployment.status.available_replicas
-            else 0
-        )
-
-        strategy = (
-            deployment.spec.strategy.type
-            if deployment.spec.strategy
-            else "Unknown"
-        )
-
-        images = []
-
-        containers = (
-            deployment.spec.template.spec.containers
-            if deployment.spec.template.spec.containers
-            else []
-        )
-
-        for container in containers:
-            images.append(container.image)
-
-        deployments.append(
-            {
-                "name": deployment.metadata.name,
-                "namespace": deployment.metadata.namespace,
-                "replicas": replicas,
-                "ready_replicas": ready_replicas,
-                "available_replicas": available_replicas,
-                "strategy": strategy,
-                "images": ",".join(images),
-            }
-        )
-
-    return deployments
 
 def get_deployments():
     apps_v1 = get_apps_v1_api()
@@ -244,3 +195,42 @@ def get_namespaces():
         raise RuntimeError(
             f"Unable to retrieve Kubernetes namespaces: {e}"
         )
+
+
+def get_events():
+    v1 = get_core_v1_api()
+
+    events = []
+
+    for event in v1.list_event_for_all_namespaces().items:
+        involved_object = None
+
+        if event.involved_object:
+            involved_object = (
+                f"{event.involved_object.kind}/"
+                f"{event.involved_object.name}"
+            )
+
+        timestamp = (
+            event.last_timestamp
+            or event.event_time
+            or event.first_timestamp
+        )
+
+        events.append(
+            {
+                "namespace": event.metadata.namespace,
+                "name": event.metadata.name,
+                "type": event.type,
+                "reason": event.reason,
+                "message": event.message,
+                "involved_object": involved_object,
+                "timestamp": (
+                    timestamp.isoformat()
+                    if timestamp
+                    else None
+                ),
+            }
+        )
+
+    return events

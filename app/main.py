@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.api import cluster, health, pods, services, version, deployments, namespaces
+from app.api import cluster, health, pods, services, version, deployments, namespaces, events
 from app.core import APP_NAME, APP_VERSION
 
 app = FastAPI(
@@ -27,3 +27,4 @@ app.include_router(pods.router)
 app.include_router(services.router)
 app.include_router(deployments.router)
 app.include_router(namespaces.router)
+app.include_router(events.router)
