@@ -197,12 +197,27 @@ def get_namespaces():
         )
 
 
-def get_events():
+def get_events(
+    limit: int = 50,
+    namespace: str | None = None,
+    event_type: str | None = None,
+):
     v1 = get_core_v1_api()
+
+    if namespace:
+        kubernetes_events = v1.list_namespaced_event(
+            namespace=namespace
+        )
+    else:
+        kubernetes_events = v1.list_event_for_all_namespaces()
 
     events = []
 
-    for event in v1.list_event_for_all_namespaces().items:
+    for event in kubernetes_events.items:
+
+        if event_type and event.type != event_type:
+            continue
+
         involved_object = None
 
         if event.involved_object:
@@ -233,4 +248,9 @@ def get_events():
             }
         )
 
-    return events
+    events.sort(
+        key=lambda x: x["timestamp"] or "",
+        reverse=True,
+    )
+
+    return events[:limit]
