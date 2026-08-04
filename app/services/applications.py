@@ -23,8 +23,17 @@ def get_applications() -> list[KubernetesApplication]:
         namespace = deployment.metadata.namespace
         name = deployment.metadata.name
 
-        desired_replicas = deployment.spec.replicas or 0
-        ready_replicas = deployment.status.ready_replicas or 0
+        desired_replicas = (
+            deployment.spec.replicas
+            if deployment.spec.replicas is not None
+            else 1
+        )
+
+        ready_replicas = (
+            deployment.status.ready_replicas
+            if deployment.status.ready_replicas is not None
+            else 0
+        )
 
         #
         # Pods liés au Deployment
@@ -99,7 +108,8 @@ def get_applications() -> list[KubernetesApplication]:
                 hosts=hosts,
                 service=service_name,
                 deployment=name,
-                replicas=desired_replicas,
+                desired_replicas=desired_replicas,
+                ready_replicas=ready_replicas,
                 pods=pods,
                 status=get_application_status(
                     desired_replicas,

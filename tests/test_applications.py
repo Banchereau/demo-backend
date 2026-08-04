@@ -13,7 +13,8 @@ def test_get_applications(client):
             ],
             "service": "demo-backend",
             "deployment": "demo-backend",
-            "replicas": 1,
+            "desired_replicas": 1,
+            "ready_replicas": 1,
             "pods": [
                 "demo-backend-12345"
             ],
@@ -49,7 +50,8 @@ def test_demo_backend_application_exists(client):
             ],
             "service": "demo-backend",
             "deployment": "demo-backend",
-            "replicas": 1,
+            "desired_replicas": 1,
+            "ready_replicas": 1,
             "pods": [
                 "demo-backend-12345"
             ],
@@ -82,7 +84,8 @@ def test_application_structure(client):
             "hosts": [],
             "service": "demo-backend",
             "deployment": "demo-backend",
-            "replicas": 1,
+            "desired_replicas": 1,
+            "ready_replicas": 1,
             "pods": [],
             "certificate": None,
             "status": "healthy",
@@ -100,4 +103,8 @@ def test_application_structure(client):
     assert "name" in app
     assert "namespace" in app
     assert "status" in app
-    assert "replicas" in app
+    assert "desired_replicas" in app
+    assert "ready_replicas" in app
+
+    assert app["desired_replicas"] == 1
+    assert app["ready_replicas"] == 1
