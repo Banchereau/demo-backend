@@ -14,6 +14,7 @@ class KubernetesApplication(BaseModel):
 
     desired_replicas: int = 0
     ready_replicas: int = 0
+    replicas: int = 0
 
     pods: list[str] = []
 

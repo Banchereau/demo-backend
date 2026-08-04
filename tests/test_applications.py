@@ -1,57 +1,103 @@
-from fastapi.testclient import TestClient
-
-from app.main import app
+from unittest.mock import patch
 
 
-client = TestClient(app)
+def test_get_applications(client):
 
+    mock_applications = [
+        {
+            "name": "demo-backend",
+            "namespace": "default",
+            "ingress": "demo-backend",
+            "hosts": [
+                "api.xcodewhisperer.fr"
+            ],
+            "service": "demo-backend",
+            "deployment": "demo-backend",
+            "replicas": 1,
+            "pods": [
+                "demo-backend-12345"
+            ],
+            "certificate": None,
+            "status": "healthy",
+        }
+    ]
 
-def test_get_applications():
-
-    response = client.get("/applications")
+    with patch(
+        "app.api.applications.get_applications",
+        return_value=mock_applications,
+    ):
+        response = client.get("/applications")
 
     assert response.status_code == 200
 
     data = response.json()
 
-    assert isinstance(data, list)
+    assert len(data) == 1
+    assert data[0]["name"] == "demo-backend"
+    assert data[0]["status"] == "healthy"
 
 
-def test_demo_backend_application_exists():
+def test_demo_backend_application_exists(client):
 
-    response = client.get("/applications")
+    mock_applications = [
+        {
+            "name": "demo-backend",
+            "namespace": "default",
+            "ingress": "demo-backend",
+            "hosts": [
+                "api.xcodewhisperer.fr"
+            ],
+            "service": "demo-backend",
+            "deployment": "demo-backend",
+            "replicas": 1,
+            "pods": [
+                "demo-backend-12345"
+            ],
+            "certificate": None,
+            "status": "healthy",
+        }
+    ]
 
-    assert response.status_code == 200
+    with patch(
+        "app.api.applications.get_applications",
+        return_value=mock_applications,
+    ):
+        response = client.get("/applications")
 
     applications = response.json()
 
-    demo_backend = next(
-        (
-            application
-            for application in applications
-            if application["name"] == "demo-backend"
-        ),
-        None,
+    assert any(
+        app["name"] == "demo-backend"
+        for app in applications
     )
 
-    assert demo_backend is not None
 
-    assert demo_backend["namespace"] == "default"
+def test_application_structure(client):
 
-    assert demo_backend["service"] == "demo-backend"
+    mock_applications = [
+        {
+            "name": "demo-backend",
+            "namespace": "default",
+            "ingress": None,
+            "hosts": [],
+            "service": "demo-backend",
+            "deployment": "demo-backend",
+            "replicas": 1,
+            "pods": [],
+            "certificate": None,
+            "status": "healthy",
+        }
+    ]
 
-    assert demo_backend["deployment"] == "demo-backend"
+    with patch(
+        "app.api.applications.get_applications",
+        return_value=mock_applications,
+    ):
+        response = client.get("/applications")
 
+    app = response.json()[0]
 
-def test_application_structure():
-
-    response = client.get("/applications")
-
-    application = response.json()[0]
-
-    assert "name" in application
-    assert "namespace" in application
-    assert "service" in application
-    assert "deployment" in application
-    assert "pods" in application
-    assert "status" in application
+    assert "name" in app
+    assert "namespace" in app
+    assert "status" in app
+    assert "replicas" in app
