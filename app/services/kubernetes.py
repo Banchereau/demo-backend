@@ -21,13 +21,14 @@ def get_apps_v1_api():
     return client.AppsV1Api()
 
 
-def get_kubernetes_client():
+def get_networking_v1_api():
     try:
         config.load_incluster_config()
-    except Exception:
+    except config.ConfigException:
         config.load_kube_config()
 
-    return client.CoreV1Api()
+    return client.NetworkingV1Api()
+
 
 def format_age(created_at):
     if created_at is None:
@@ -175,7 +176,7 @@ def get_deployments():
 
 def get_namespaces():
     try:
-        v1 = get_kubernetes_client()
+        v1 = get_core_v1_api()
 
         namespaces = v1.list_namespace()
 
