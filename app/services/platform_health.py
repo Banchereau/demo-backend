@@ -1,7 +1,7 @@
 from app.services.kubernetes import (
     get_core_v1_api,
 )
-
+from app.services.certificates import get_certificates
 
 def check_kubernetes_api():
 
@@ -29,16 +29,34 @@ def check_kubernetes_api():
 def check_cert_manager():
 
     try:
-        v1 = get_core_v1_api()
+        certificates = get_certificates()
 
-        certificates = v1.list_namespaced_secret(
-            namespace="cert-manager"
+        total = len(certificates)
+
+        ready = sum(
+            1
+            for certificate in certificates
+            if certificate.ready
         )
+
+        if total == 0:
+            return {
+                "name": "cert-manager",
+                "status": "degraded",
+                "message": "No certificates found",
+            }
+
+        if ready == total:
+            return {
+                "name": "cert-manager",
+                "status": "healthy",
+                "message": f"{ready}/{total} certificates ready",
+            }
 
         return {
             "name": "cert-manager",
-            "status": "healthy",
-            "message": "cert-manager namespace available",
+            "status": "degraded",
+            "message": f"{ready}/{total} certificates ready",
         }
 
     except Exception as e:
