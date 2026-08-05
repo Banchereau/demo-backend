@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.api import cluster, health, pods, services, version, deployments, namespaces, events, certificates, ingresses, applications
+from app.api import cluster, health, pods, services, version, deployments, namespaces, events, certificates, ingresses, applications, platform
 from app.core import APP_NAME, APP_VERSION
 
 app = FastAPI(
@@ -31,3 +31,4 @@ app.include_router(events.router)
 app.include_router(certificates.router)
 app.include_router(ingresses.router)
 app.include_router(applications.router)
+app.include_router(platform.router)
