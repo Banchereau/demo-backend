@@ -1,3 +1,6 @@
+from app.models.certificate import Certificate
+
+
 def test_platform_health(client):
     response = client.get("/health/platform")
 
@@ -24,9 +27,37 @@ def test_platform_health(client):
     assert "FluxCD" in component_names
 
 
-def test_platform_health_certificates(client):
+from app.models.certificate import Certificate
 
-    response = client.get("/health/platform")
+
+def test_platform_health_certificates(monkeypatch, client):
+
+    def mock_get_certificates():
+
+        return [
+            Certificate(
+                namespace="default",
+                name="demo-tls",
+                secret_name="demo-tls",
+                dns_names=[
+                    "api.example.com"
+                ],
+                issuer="letsencrypt",
+                ready=True,
+                status="Certificate is up to date",
+                not_after=None,
+                renewal_time=None,
+            )
+        ]
+
+    monkeypatch.setattr(
+        "app.services.platform_health.get_certificates",
+        mock_get_certificates,
+    )
+
+    response = client.get(
+        "/health/platform"
+    )
 
     assert response.status_code == 200
 
@@ -39,4 +70,4 @@ def test_platform_health_certificates(client):
     )
 
     assert cert_manager["status"] == "healthy"
-    assert "certificates ready" in cert_manager["message"]
+    assert "1/1 certificates ready" in cert_manager["message"]
