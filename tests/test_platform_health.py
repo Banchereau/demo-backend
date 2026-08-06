@@ -280,15 +280,100 @@ def test_platform_health_applications_degraded(monkeypatch, client):
     assert "0/1 applications healthy" in applications["message"]
 
 
-def test_platform_health_monitoring(client):
+def test_platform_health_monitoring(monkeypatch, client):
+
+    class MockDeploymentStatus:
+        ready_replicas = 1
+
+
+    class MockDeploymentMetadata:
+        def __init__(self, name):
+            self.name = name
+
+
+    class MockDeployment:
+        def __init__(self, name):
+            self.metadata = MockDeploymentMetadata(name)
+            self.status = MockDeploymentStatus()
+
+
+    class MockStatefulSetStatus:
+        ready_replicas = 1
+
+
+    class MockStatefulSetMetadata:
+        def __init__(self, name):
+            self.name = name
+
+
+    class MockStatefulSet:
+        def __init__(self, name):
+            self.metadata = MockStatefulSetMetadata(name)
+            self.status = MockStatefulSetStatus()
+
+
+    class MockAppsApi:
+
+        def list_namespaced_deployment(
+            self,
+            namespace
+        ):
+            assert namespace == "monitoring"
+
+            return type(
+                "Result",
+                (),
+                {
+                    "items": [
+                        MockDeployment(
+                            "grafana"
+                        ),
+                        MockDeployment(
+                            "kube-state-metrics"
+                        ),
+                        MockDeployment(
+                            "prometheus-operator"
+                        ),
+                    ]
+                }
+            )
+
+
+        def list_namespaced_stateful_set(
+            self,
+            namespace
+        ):
+            assert namespace == "monitoring"
+
+            return type(
+                "Result",
+                (),
+                {
+                    "items": [
+                        MockStatefulSet(
+                            "alertmanager-main"
+                        )
+                    ]
+                }
+            )
+
+
+    monkeypatch.setattr(
+        "app.services.platform_health.get_apps_v1_api",
+        lambda: MockAppsApi(),
+    )
+
 
     response = client.get(
         "/health/platform"
     )
 
+
     assert response.status_code == 200
 
+
     data = response.json()
+
 
     monitoring = next(
         component
@@ -296,7 +381,5 @@ def test_platform_health_monitoring(client):
         if component["name"] == "Monitoring"
     )
 
-    assert monitoring["status"] in [
-        "healthy",
-        "degraded",
-    ]
+
+    assert monitoring["status"] == "healthy"
