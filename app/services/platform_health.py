@@ -3,6 +3,7 @@ from app.services.kubernetes import (
     get_apps_v1_api,
 )
 from app.services.certificates import get_certificates
+from app.services.applications import get_applications
 
 def check_kubernetes_api():
 
@@ -142,6 +143,47 @@ def check_ingress_controller():
         }
 
 
+def check_applications():
+
+    try:
+        applications = get_applications()
+
+        total = len(applications)
+
+        healthy = sum(
+            1
+            for application in applications
+            if application.status == "healthy"
+        )
+
+        if total == 0:
+            return {
+                "name": "Applications",
+                "status": "degraded",
+                "message": "No applications found",
+            }
+
+        if healthy == total:
+            return {
+                "name": "Applications",
+                "status": "healthy",
+                "message": f"{healthy}/{total} applications healthy",
+            }
+
+        return {
+            "name": "Applications",
+            "status": "degraded",
+            "message": f"{healthy}/{total} applications healthy",
+        }
+
+    except Exception as e:
+        return {
+            "name": "Applications",
+            "status": "unhealthy",
+            "message": str(e),
+        }
+
+
 def get_platform_health():
 
     components = [
@@ -149,6 +191,7 @@ def get_platform_health():
         check_cert_manager(),
         check_flux(),
         check_ingress_controller(),
+        check_applications(),
     ]
 
     status = (

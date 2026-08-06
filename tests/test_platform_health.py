@@ -165,3 +165,116 @@ def test_platform_health_ingress_controller_degraded(
 
     assert ingress["status"] == "degraded"
     assert "0/1 controllers ready" in ingress["message"]
+
+def test_platform_health_applications(monkeypatch, client):
+
+    from app.models.application import KubernetesApplication
+
+
+    def mock_get_applications():
+
+        return [
+            KubernetesApplication(
+                name="demo-backend",
+                namespace="default",
+                ingress="demo-backend",
+                hosts=[
+                    "api.example.com"
+                ],
+                service="demo-backend",
+                deployment="demo-backend",
+                desired_replicas=1,
+                ready_replicas=1,
+                pods=[
+                    "demo-backend-xxxxx"
+                ],
+                status="healthy",
+            ),
+            KubernetesApplication(
+                name="demo-frontend",
+                namespace="default",
+                ingress="demo-frontend",
+                hosts=[
+                    "app.example.com"
+                ],
+                service="demo-frontend",
+                deployment="demo-frontend",
+                desired_replicas=1,
+                ready_replicas=1,
+                pods=[
+                    "demo-frontend-xxxxx"
+                ],
+                status="healthy",
+            ),
+        ]
+
+
+    monkeypatch.setattr(
+        "app.services.platform_health.get_applications",
+        mock_get_applications,
+    )
+
+
+    response = client.get(
+        "/health/platform"
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    applications = next(
+        component
+        for component in data["components"]
+        if component["name"] == "Applications"
+    )
+
+    assert applications["status"] == "healthy"
+    assert "2/2 applications healthy" in applications["message"]
+
+
+def test_platform_health_applications_degraded(monkeypatch, client):
+
+    from app.models.application import KubernetesApplication
+
+
+    def mock_get_applications():
+
+        return [
+            KubernetesApplication(
+                name="demo-backend",
+                namespace="default",
+                ingress=None,
+                hosts=[],
+                service="demo-backend",
+                deployment="demo-backend",
+                desired_replicas=1,
+                ready_replicas=0,
+                pods=[],
+                status="degraded",
+            ),
+        ]
+
+
+    monkeypatch.setattr(
+        "app.services.platform_health.get_applications",
+        mock_get_applications,
+    )
+
+
+    response = client.get(
+        "/health/platform"
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    applications = next(
+        component
+        for component in data["components"]
+        if component["name"] == "Applications"
+    )
+
+    assert applications["status"] == "degraded"
+    assert "0/1 applications healthy" in applications["message"]
