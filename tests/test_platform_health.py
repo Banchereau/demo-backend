@@ -383,3 +383,108 @@ def test_platform_health_monitoring(monkeypatch, client):
 
 
     assert monitoring["status"] == "healthy"
+
+
+def test_platform_health_network(monkeypatch, client):
+
+    class MockPodStatus:
+        phase = "Running"
+
+
+    class MockPod:
+        status = MockPodStatus()
+
+        metadata = type(
+            "Metadata",
+            (),
+            {
+                "labels": {
+                    "app.kubernetes.io/component": "controller"
+                }
+            }
+        )()
+
+
+    class MockCoreApi:
+
+        def list_namespaced_pod(
+            self,
+            namespace,
+            label_selector=None
+        ):
+
+            if namespace == "kube-system":
+                return type(
+                    "Result",
+                    (),
+                    {
+                        "items": [
+                            MockPod()
+                        ]
+                    }
+                )()
+
+            return type(
+                "Result",
+                (),
+                {
+                    "items": [
+                        MockPod(),
+                        type(
+                            "Pod",
+                            (),
+                            {
+                                "status": MockPodStatus(),
+                                "metadata": type(
+                                    "Metadata",
+                                    (),
+                                    {
+                                        "labels": {
+                                            "app.kubernetes.io/component": "speaker"
+                                        }
+                                    }
+                                )()
+                            }
+                        )(),
+                        type(
+                            "Pod",
+                            (),
+                            {
+                                "status": MockPodStatus(),
+                                "metadata": type(
+                                    "Metadata",
+                                    (),
+                                    {
+                                        "labels": {
+                                            "app.kubernetes.io/component": "frr-k8s"
+                                        }
+                                    }
+                                )()
+                            }
+                        )(),
+                    ]
+                }
+            )()
+
+
+    monkeypatch.setattr(
+        "app.services.platform_health.get_core_v1_api",
+        lambda: MockCoreApi(),
+    )
+
+
+    response = client.get(
+        "/health/platform"
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    network = next(
+        component
+        for component in data["components"]
+        if component["name"] == "Network"
+    )
+
+    assert network["status"] == "healthy"

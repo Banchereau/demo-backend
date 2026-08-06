@@ -285,6 +285,87 @@ def check_monitoring():
         }
 
 
+def check_network():
+
+    try:
+        v1 = get_core_v1_api()
+
+        checks = {
+            "Cilium": False,
+            "MetalLB Controller": False,
+            "MetalLB Speaker": False,
+            "MetalLB FRR": False,
+        }
+
+
+        cilium = v1.list_namespaced_pod(
+            namespace="kube-system",
+            label_selector="k8s-app=cilium",
+        )
+
+        checks["Cilium"] = any(
+            pod.status.phase == "Running"
+            for pod in cilium.items
+        )
+
+
+        metallb = v1.list_namespaced_pod(
+            namespace="metallb-system",
+        )
+
+
+        for pod in metallb.items:
+
+            if pod.status.phase != "Running":
+                continue
+
+            labels = pod.metadata.labels or {}
+
+            component = labels.get(
+                "app.kubernetes.io/component"
+            )
+
+            if component == "controller":
+                checks["MetalLB Controller"] = True
+
+            elif component == "speaker":
+                checks["MetalLB Speaker"] = True
+
+            elif component == "frr-k8s":
+                checks["MetalLB FRR"] = True
+
+
+        running = sum(checks.values())
+        expected = len(checks)
+
+
+        if running == expected:
+            return {
+                "name": "Network",
+                "status": "healthy",
+                "message": (
+                    "Cilium and MetalLB running"
+                ),
+            }
+
+
+        return {
+            "name": "Network",
+            "status": "degraded",
+            "message": (
+                f"{running}/{expected} "
+                "network components running"
+            ),
+        }
+
+
+    except Exception as e:
+        return {
+            "name": "Network",
+            "status": "unhealthy",
+            "message": str(e),
+        }
+
 def get_platform_health():
 
     components = [
@@ -294,6 +375,7 @@ def get_platform_health():
         check_ingress_controller(),
         check_applications(),
         check_monitoring(),
+        check_network(),
     ]
 
     status = (
