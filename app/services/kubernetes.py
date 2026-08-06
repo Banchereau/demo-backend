@@ -2,32 +2,11 @@ from datetime import datetime, timezone
 
 from kubernetes import client, config
 
-
-def get_core_v1_api():
-    try:
-        config.load_incluster_config()
-    except config.ConfigException:
-        config.load_kube_config()
-
-    return client.CoreV1Api()
-
-
-def get_apps_v1_api():
-    try:
-        config.load_incluster_config()
-    except config.ConfigException:
-        config.load_kube_config()
-
-    return client.AppsV1Api()
-
-
-def get_networking_v1_api():
-    try:
-        config.load_incluster_config()
-    except config.ConfigException:
-        config.load_kube_config()
-
-    return client.NetworkingV1Api()
+from app.core.kubernetes import (
+    get_apps_v1,
+    get_core_v1,
+    get_networking_v1,
+)
 
 
 def format_age(created_at):
@@ -51,7 +30,7 @@ def format_age(created_at):
 
 def get_cluster_status():
     try:
-        v1 = get_core_v1_api()
+        v1 = get_core_v1()
 
         nodes = v1.list_node()
         pods = v1.list_pod_for_all_namespaces()
@@ -74,7 +53,7 @@ def get_cluster_status():
 
 
 def get_pods():
-    v1 = get_core_v1_api()
+    v1 = get_core_v1()
 
     pods = []
 
@@ -101,7 +80,7 @@ def get_pods():
 
 
 def get_services():
-    v1 = get_core_v1_api()
+    v1 = get_core_v1()
 
     services = []
 
@@ -128,7 +107,7 @@ def get_services():
 
 
 def get_deployments():
-    apps_v1 = get_apps_v1_api()
+    apps_v1 = get_apps_v1()
 
     deployments = []
 
@@ -176,7 +155,7 @@ def get_deployments():
 
 def get_namespaces():
     try:
-        v1 = get_core_v1_api()
+        v1 = get_core_v1()
 
         namespaces = v1.list_namespace()
 
@@ -203,7 +182,7 @@ def get_events(
     namespace: str | None = None,
     event_type: str | None = None,
 ):
-    v1 = get_core_v1_api()
+    v1 = get_core_v1()
 
     if namespace:
         kubernetes_events = v1.list_namespaced_event(

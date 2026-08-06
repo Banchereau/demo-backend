@@ -1,9 +1,9 @@
-from app.services.kubernetes import get_networking_v1_api
+from app.core.kubernetes import get_networking_v1
 
 
 def get_ingresses(namespace=None):
 
-    networking = get_networking_v1_api()
+    networking = get_networking_v1()
 
     if namespace:
         ingresses = networking.list_namespaced_ingress(

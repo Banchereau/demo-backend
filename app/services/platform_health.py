@@ -1,9 +1,14 @@
-from app.services.kubernetes import (
-    get_core_v1_api,
-    get_apps_v1_api,
+from app.core.kubernetes import (
+    get_apps_v1,
+    get_core_v1,
 )
 from app.services.certificates import get_certificates
 from app.services.applications import get_applications
+
+
+get_apps_v1_api = get_apps_v1
+get_core_v1_api = get_core_v1
+
 
 def check_kubernetes_api():
 
