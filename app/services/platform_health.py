@@ -1,5 +1,6 @@
 from app.services.kubernetes import (
     get_core_v1_api,
+    get_apps_v1_api,
 )
 from app.services.certificates import get_certificates
 
@@ -103,12 +104,51 @@ def check_flux():
         }
 
 
+def check_ingress_controller():
+
+    try:
+        apps = get_apps_v1_api()
+
+        deployment = apps.read_namespaced_deployment(
+            name="ingress-nginx-controller",
+            namespace="ingress-nginx",
+        )
+
+        replicas = deployment.spec.replicas or 0
+        ready = deployment.status.ready_replicas or 0
+
+        if ready == replicas:
+            return {
+                "name": "Ingress Controller",
+                "status": "healthy",
+                "message": (
+                    "1 controller running"
+                    if ready == 1
+                    else f"{ready} controllers running"
+                ),
+            }
+
+        return {
+            "name": "Ingress Controller",
+            "status": "degraded",
+            "message": f"{ready}/{replicas} controllers ready",
+        }
+
+    except Exception as e:
+        return {
+            "name": "Ingress Controller",
+            "status": "unhealthy",
+            "message": str(e),
+        }
+
+
 def get_platform_health():
 
     components = [
         check_kubernetes_api(),
         check_cert_manager(),
         check_flux(),
+        check_ingress_controller(),
     ]
 
     status = (

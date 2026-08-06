@@ -25,7 +25,7 @@ def test_platform_health(client):
     assert "Kubernetes API" in component_names
     assert "cert-manager" in component_names
     assert "FluxCD" in component_names
-
+    assert "Ingress Controller" in component_names
 
 from app.models.certificate import Certificate
 
@@ -71,3 +71,97 @@ def test_platform_health_certificates(monkeypatch, client):
 
     assert cert_manager["status"] == "healthy"
     assert "1/1 certificates ready" in cert_manager["message"]
+
+
+def test_platform_health_ingress_controller(monkeypatch, client):
+
+    class MockDeploymentStatus:
+        ready_replicas = 1
+
+    class MockDeploymentSpec:
+        replicas = 1
+
+    class MockDeployment:
+        status = MockDeploymentStatus()
+        spec = MockDeploymentSpec()
+
+    class MockAppsApi:
+
+        def read_namespaced_deployment(
+            self,
+            name,
+            namespace,
+        ):
+            assert name == "ingress-nginx-controller"
+            assert namespace == "ingress-nginx"
+
+            return MockDeployment()
+
+    monkeypatch.setattr(
+        "app.services.platform_health.get_apps_v1_api",
+        lambda: MockAppsApi(),
+    )
+
+    response = client.get(
+        "/health/platform"
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    ingress = next(
+        component
+        for component in data["components"]
+        if component["name"] == "Ingress Controller"
+    )
+
+    assert ingress["status"] == "healthy"
+    assert "1 controller running" in ingress["message"]
+
+
+def test_platform_health_ingress_controller_degraded(
+    monkeypatch,
+    client,
+):
+
+    class MockDeploymentStatus:
+        ready_replicas = 0
+
+    class MockDeploymentSpec:
+        replicas = 1
+
+    class MockDeployment:
+        status = MockDeploymentStatus()
+        spec = MockDeploymentSpec()
+
+    class MockAppsApi:
+
+        def read_namespaced_deployment(
+            self,
+            name,
+            namespace,
+        ):
+            return MockDeployment()
+
+    monkeypatch.setattr(
+        "app.services.platform_health.get_apps_v1_api",
+        lambda: MockAppsApi(),
+    )
+
+    response = client.get(
+        "/health/platform"
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    ingress = next(
+        component
+        for component in data["components"]
+        if component["name"] == "Ingress Controller"
+    )
+
+    assert ingress["status"] == "degraded"
+    assert "0/1 controllers ready" in ingress["message"]
