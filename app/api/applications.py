@@ -1,7 +1,14 @@
 from fastapi import APIRouter
 
-from app.models.application import KubernetesApplication
-from app.services.applications import get_applications
+from app.models.application import (
+    KubernetesApplication,
+    ApplicationDetail,
+)
+
+from app.services.applications import (
+    get_applications,
+    get_application_detail,
+)
 
 
 router = APIRouter(
@@ -16,3 +23,17 @@ router = APIRouter(
 )
 def read_applications():
     return get_applications()
+
+
+@router.get(
+    "/{namespace}/{name}",
+    response_model=ApplicationDetail
+)
+def read_application_detail(
+    namespace: str,
+    name: str
+):
+    return get_application_detail(
+        namespace,
+        name
+    )
