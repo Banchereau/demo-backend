@@ -184,6 +184,107 @@ def check_applications():
         }
 
 
+def check_monitoring():
+
+    try:
+        apps = get_apps_v1_api()
+
+        checks = {
+            "Grafana": False,
+            "Alertmanager": False,
+            "kube-state-metrics": False,
+            "Prometheus Operator": False,
+        }
+
+        deployments = apps.list_namespaced_deployment(
+            namespace="monitoring"
+        )
+
+        for deployment in deployments.items:
+
+            name = deployment.metadata.name
+
+            ready = (
+                deployment.status.ready_replicas
+                or 0
+            )
+
+            if (
+                "grafana" in name
+                and ready > 0
+            ):
+                checks["Grafana"] = True
+
+            if (
+                "kube-state-metrics" in name
+                and ready > 0
+            ):
+                checks["kube-state-metrics"] = True
+
+            if (
+                "operator" in name
+                and ready > 0
+            ):
+                checks["Prometheus Operator"] = True
+
+
+        statefulsets = apps.list_namespaced_stateful_set(
+            namespace="monitoring"
+        )
+
+        for statefulset in statefulsets.items:
+
+            name = statefulset.metadata.name
+
+            ready = (
+                statefulset.status.ready_replicas
+                or 0
+            )
+
+            if (
+                "alertmanager" in name
+                and ready > 0
+            ):
+                checks["Alertmanager"] = True
+
+
+        running = sum(
+            checks.values()
+        )
+
+        expected = len(checks)
+
+
+        if running == expected:
+            return {
+                "name": "Monitoring",
+                "status": "healthy",
+                "message": (
+                    "Grafana, Alertmanager, "
+                    "kube-state-metrics and "
+                    "Prometheus Operator running"
+                ),
+            }
+
+
+        return {
+            "name": "Monitoring",
+            "status": "degraded",
+            "message": (
+                f"{running}/{expected} "
+                "monitoring components running"
+            ),
+        }
+
+
+    except Exception as e:
+        return {
+            "name": "Monitoring",
+            "status": "unhealthy",
+            "message": str(e),
+        }
+
+
 def get_platform_health():
 
     components = [
@@ -192,6 +293,7 @@ def get_platform_health():
         check_flux(),
         check_ingress_controller(),
         check_applications(),
+        check_monitoring(),
     ]
 
     status = (

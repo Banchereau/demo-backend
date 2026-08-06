@@ -278,3 +278,25 @@ def test_platform_health_applications_degraded(monkeypatch, client):
 
     assert applications["status"] == "degraded"
     assert "0/1 applications healthy" in applications["message"]
+
+
+def test_platform_health_monitoring(client):
+
+    response = client.get(
+        "/health/platform"
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    monitoring = next(
+        component
+        for component in data["components"]
+        if component["name"] == "Monitoring"
+    )
+
+    assert monitoring["status"] in [
+        "healthy",
+        "degraded",
+    ]
