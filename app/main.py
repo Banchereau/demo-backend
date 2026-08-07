@@ -16,6 +16,7 @@ app.add_middleware(
     allow_origins=[
         "http://172.29.88.206:3000",
         "https://xcodewhisperer.fr",
+        "https://app.xcodewhisperer.fr",
     ],
     allow_credentials=True,
     allow_methods=["*"],
