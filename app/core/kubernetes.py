@@ -26,3 +26,7 @@ def get_networking_v1() -> client.NetworkingV1Api:
 def get_custom_objects_api() -> client.CustomObjectsApi:
     load_kubernetes_config()
     return client.CustomObjectsApi()
+
+def get_api_client():
+    load_kubernetes_config()
+    return client.ApiClient()
