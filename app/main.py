@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -11,12 +13,17 @@ app = FastAPI(
     version=APP_VERSION,
 )
 
+cors_origins = os.getenv(
+    "CORS_ORIGINS",
+    ""
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://172.29.88.206:3000",
-        "https://xcodewhisperer.fr",
-        "https://app.xcodewhisperer.fr",
+        origin.strip()
+        for origin in cors_origins.split(",")
+        if origin.strip()
     ],
     allow_credentials=True,
     allow_methods=["*"],
