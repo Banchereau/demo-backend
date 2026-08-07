@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import cluster, health, pods, services, version, deployments, namespaces, events, certificates, ingresses, applications, platform
 from app.core import APP_NAME, APP_VERSION
@@ -10,6 +11,16 @@ app = FastAPI(
     version=APP_VERSION,
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://172.29.88.206:3000",
+        "https://xcodewhisperer.fr",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def root():
