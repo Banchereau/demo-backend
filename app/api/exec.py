@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
@@ -84,9 +85,11 @@ async def exec_pod(
         pass
 
     except Exception as e:
+        traceback.print_exc()
+
         try:
             await websocket.send_text(
-                f"\r\nERROR: {e}\r\n"
+                f"\r\nERROR: {type(e).__name__}: {e}\r\n"
             )
         except Exception:
             pass
