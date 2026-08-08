@@ -16,9 +16,12 @@ async def read_pod_output(
     shell,
 ):
     while True:
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.05)
 
-        shell.update(timeout=1)
+        if not shell.is_open():
+            break
+
+        shell.update(timeout=0)
 
         if shell.peek_stdout():
             output = shell.read_stdout()
@@ -40,6 +43,9 @@ async def write_pod_input(
     while True:
         data = await websocket.receive_text()
 
+        if not shell.is_open():
+            break
+
         shell.write_stdin(data)
 
 
@@ -60,7 +66,7 @@ async def exec_pod(
         )
 
         await websocket.send_text(
-            "Connected to pod shell\n"
+            "Connected to pod shell\r\n"
         )
 
         await asyncio.gather(
@@ -78,9 +84,12 @@ async def exec_pod(
         pass
 
     except Exception as e:
-        await websocket.send_text(
-            f"ERROR: {e}"
-        )
+        try:
+            await websocket.send_text(
+                f"\r\nERROR: {e}\r\n"
+            )
+        except Exception:
+            pass
 
     finally:
         if shell:
