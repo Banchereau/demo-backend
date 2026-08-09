@@ -1,7 +1,8 @@
 import asyncio
 import traceback
-from kubernetes.client.exceptions import ApiException
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from kubernetes.client.exceptions import ApiException
 
 from app.services.pod_exec import connect_pod_exec
 
@@ -59,6 +60,8 @@ async def exec_pod(
     await websocket.accept()
 
     shell = None
+    read_task = None
+    write_task = None
 
     try:
         shell = connect_pod_exec(
@@ -70,16 +73,38 @@ async def exec_pod(
             "Connected to pod shell\r\n"
         )
 
-        await asyncio.gather(
+        read_task = asyncio.create_task(
             read_pod_output(
                 websocket,
                 shell,
-            ),
+            )
+        )
+
+        write_task = asyncio.create_task(
             write_pod_input(
                 websocket,
                 shell,
-            ),
+            )
         )
+
+        done, pending = await asyncio.wait(
+            {read_task, write_task},
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+
+        for task in pending:
+            task.cancel()
+
+        await asyncio.gather(
+            *pending,
+            return_exceptions=True,
+        )
+
+        for task in done:
+            exception = task.exception()
+
+            if exception is not None:
+                raise exception
 
     except WebSocketDisconnect:
         pass
@@ -118,5 +143,23 @@ async def exec_pod(
             pass
 
     finally:
+        if read_task and not read_task.done():
+            read_task.cancel()
+
+        if write_task and not write_task.done():
+            write_task.cancel()
+
+        tasks = [
+            task
+            for task in (read_task, write_task)
+            if task is not None
+        ]
+
+        if tasks:
+            await asyncio.gather(
+                *tasks,
+                return_exceptions=True,
+            )
+
         if shell:
             shell.close()
