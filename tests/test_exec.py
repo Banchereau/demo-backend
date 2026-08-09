@@ -1,8 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from kubernetes.client.exceptions import NotFoundException
-
+from kubernetes.client.exceptions import ApiException, NotFoundException
 from app.services.pod_exec import connect_pod_exec
 
 
@@ -97,3 +96,24 @@ def test_connect_pod_exec_uses_bash_and_tty():
     assert kwargs["tty"] is True
     assert kwargs["_preload_content"] is False
     assert kwargs["container"] == "backend"
+
+
+def test_connect_pod_exec_forbidden():
+    api = MagicMock()
+
+    with patch(
+        "app.services.pod_exec.get_core_v1",
+        return_value=api,
+    ):
+        api.read_namespaced_pod.side_effect = ApiException(
+            status=403,
+            reason="Forbidden",
+        )
+
+        with pytest.raises(ApiException) as exc:
+            connect_pod_exec(
+                "default",
+                "demo-pod",
+            )
+
+    assert exc.value.status == 403
