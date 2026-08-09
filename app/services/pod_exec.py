@@ -1,4 +1,5 @@
 from kubernetes.stream import stream
+from kubernetes.client.exceptions import ApiException
 
 from app.core.kubernetes import get_core_v1
 
@@ -9,6 +10,23 @@ def connect_pod_exec(
     container: str | None = None,
 ):
     api = get_core_v1()
+
+    pod = api.read_namespaced_pod(
+        name=pod_name,
+        namespace=namespace,
+    )
+
+    if container:
+        containers = [
+            item.name
+            for item in (pod.spec.containers or [])
+        ]
+
+        if container not in containers:
+            raise ApiException(
+                status=404,
+                reason=f"Container '{container}' not found",
+            )
 
     command = [
         "/bin/bash"

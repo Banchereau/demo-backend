@@ -1,6 +1,6 @@
 import asyncio
 import traceback
-
+from kubernetes.client.exceptions import ApiException
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from app.services.pod_exec import connect_pod_exec
@@ -83,6 +83,29 @@ async def exec_pod(
 
     except WebSocketDisconnect:
         pass
+
+    except ApiException as e:
+        status = getattr(e, "status", None)
+
+        if status == 404:
+            message = (
+                f"\r\nERROR: Pod '{pod}' not found "
+                f"in namespace '{namespace}'.\r\n"
+            )
+        elif status == 403:
+            message = (
+                "\r\nERROR: Access denied (403).\r\n"
+            )
+        else:
+            message = (
+                f"\r\nERROR: Kubernetes API error "
+                f"({status}): {e.reason}\r\n"
+            )
+
+        try:
+            await websocket.send_text(message)
+        except Exception:
+            pass
 
     except Exception as e:
         traceback.print_exc()
