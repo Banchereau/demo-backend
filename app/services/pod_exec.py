@@ -11,7 +11,7 @@ def connect_pod_exec(
     api = get_core_v1()
 
     command = [
-        "/bin/sh"
+        "/bin/bash"
     ]
 
     kwargs = {
