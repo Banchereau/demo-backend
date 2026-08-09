@@ -234,3 +234,60 @@ def get_events(
     )
 
     return events[:limit]
+
+
+def get_pod_events(
+    namespace: str,
+    pod: str,
+    limit: int = 50,
+):
+    v1 = get_core_v1()
+
+    kubernetes_events = v1.list_namespaced_event(
+        namespace=namespace
+    )
+
+    events = []
+
+    for event in kubernetes_events.items:
+
+        if not event.involved_object:
+            continue
+
+        if event.involved_object.kind != "Pod":
+            continue
+
+        if event.involved_object.name != pod:
+            continue
+
+        timestamp = (
+            event.last_timestamp
+            or event.event_time
+            or event.first_timestamp
+        )
+
+        events.append(
+            {
+                "namespace": event.metadata.namespace,
+                "name": event.metadata.name,
+                "type": event.type,
+                "reason": event.reason,
+                "message": event.message,
+                "involved_object": (
+                    f"{event.involved_object.kind}/"
+                    f"{event.involved_object.name}"
+                ),
+                "timestamp": (
+                    timestamp.isoformat()
+                    if timestamp
+                    else None
+                ),
+            }
+        )
+
+    events.sort(
+        key=lambda x: x["timestamp"] or "",
+        reverse=True,
+    )
+
+    return events[:limit]
