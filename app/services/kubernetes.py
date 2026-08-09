@@ -291,3 +291,43 @@ def get_pod_events(
     )
 
     return events[:limit]
+
+
+def get_pod_detail(
+    namespace: str,
+    pod: str,
+):
+    v1 = get_core_v1()
+
+    pod_obj = v1.read_namespaced_pod(
+        name=pod,
+        namespace=namespace,
+    )
+
+    restarts = sum(
+        status.restart_count
+        for status in (pod_obj.status.container_statuses or [])
+    )
+
+    containers = []
+    images = []
+
+    for container in pod_obj.spec.containers or []:
+        containers.append(container.name)
+        images.append(container.image)
+
+    return {
+        "name": pod_obj.metadata.name,
+        "namespace": pod_obj.metadata.namespace,
+        "status": pod_obj.status.phase,
+        "restarts": restarts,
+        "node": pod_obj.spec.node_name,
+        "age": format_age(
+            pod_obj.metadata.creation_timestamp
+        ),
+        "pod_ip": pod_obj.status.pod_ip,
+        "host_ip": pod_obj.status.host_ip,
+        "service_account": pod_obj.spec.service_account_name,
+        "containers": containers,
+        "images": images,
+    }

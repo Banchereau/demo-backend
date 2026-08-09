@@ -178,3 +178,58 @@ def test_get_pod_events_filters_by_pod():
     assert result[0]["name"] == "event-target"
     assert result[0]["involved_object"] == "Pod/demo-backend-12345"
     assert result[0]["reason"] == "Unhealthy"
+
+
+def test_pod_detail(client):
+    mock_pod = {
+        "name": "demo-backend-12345",
+        "namespace": "default",
+        "status": "Running",
+        "restarts": 2,
+        "node": "rpi",
+        "age": "10m",
+        "pod_ip": "10.42.0.15",
+        "host_ip": "192.168.1.93",
+        "service_account": "default",
+        "containers": ["demo-backend"],
+        "images": ["ghcr.io/banchereau/demo-backend:latest"],
+    }
+
+    with patch(
+        "app.api.pods.get_pod_detail",
+        return_value=mock_pod,
+    ):
+        response = client.get(
+            "/pods/default/demo-backend-12345"
+        )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["name"] == "demo-backend-12345"
+    assert data["namespace"] == "default"
+    assert data["status"] == "Running"
+    assert data["restarts"] == 2
+    assert data["node"] == "rpi"
+    assert data["pod_ip"] == "10.42.0.15"
+    assert data["containers"] == ["demo-backend"]
+
+
+def test_pod_detail_kubernetes_error(client):
+    with patch(
+        "app.api.pods.get_pod_detail",
+        side_effect=ApiException(
+            status=404,
+            reason="Not Found",
+        ),
+    ):
+        response = client.get(
+            "/pods/default/unknown-pod"
+        )
+
+    assert response.status_code == 404
+
+    data = response.json()
+
+    assert data["detail"] == "Not Found"
