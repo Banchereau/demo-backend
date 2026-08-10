@@ -1,9 +1,11 @@
 from fastapi import APIRouter, HTTPException
 from kubernetes.client.exceptions import ApiException
 
-from app.models.deployment import Deployment
-from app.services.kubernetes import get_deployments
-
+from app.models.deployment import Deployment, RolloutRevision
+from app.services.kubernetes import (
+    get_deployment_rollouts,
+    get_deployments,
+)
 
 router = APIRouter()
 
@@ -15,6 +17,27 @@ router = APIRouter()
 def deployments():
     try:
         return get_deployments()
+
+    except ApiException as e:
+        raise HTTPException(
+            status_code=e.status,
+            detail=e.reason,
+        )
+
+
+@router.get(
+    "/deployments/{namespace}/{name}/rollouts",
+    response_model=list[RolloutRevision],
+)
+def deployment_rollouts(
+    namespace: str,
+    name: str,
+):
+    try:
+        return get_deployment_rollouts(
+            namespace=namespace,
+            deployment_name=name,
+        )
 
     except ApiException as e:
         raise HTTPException(

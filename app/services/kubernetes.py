@@ -331,3 +331,97 @@ def get_pod_detail(
         "containers": containers,
         "images": images,
     }
+
+
+def get_deployment_rollouts(
+    namespace: str,
+    deployment_name: str,
+):
+    apps_v1 = get_apps_v1()
+
+    deployment = apps_v1.read_namespaced_deployment(
+        name=deployment_name,
+        namespace=namespace,
+    )
+
+    deployment_uid = deployment.metadata.uid
+
+    replica_sets = apps_v1.list_namespaced_replica_set(
+        namespace=namespace,
+    )
+
+    current_revision = int(
+        (
+            deployment.metadata.annotations or {}
+        ).get(
+            "deployment.kubernetes.io/revision",
+            "0",
+        )
+    )
+
+    rollouts = []
+
+    for replica_set in replica_sets.items:
+        owner_references = (
+            replica_set.metadata.owner_references or []
+        )
+
+        owned_by_deployment = any(
+            owner.kind == "Deployment"
+            and owner.name == deployment_name
+            and owner.uid == deployment_uid
+            for owner in owner_references
+        )
+
+        if not owned_by_deployment:
+            continue
+
+        annotations = replica_set.metadata.annotations or {}
+
+        revision_value = annotations.get(
+            "deployment.kubernetes.io/revision"
+        )
+
+        if not revision_value:
+            continue
+
+        try:
+            revision = int(revision_value)
+        except ValueError:
+            continue
+
+        replicas = replica_set.spec.replicas or 0
+
+        ready_replicas = (
+            replica_set.status.ready_replicas
+            if replica_set.status.ready_replicas is not None
+            else 0
+        )
+
+        images = []
+
+        for container in (
+            replica_set.spec.template.spec.containers or []
+        ):
+            if container.image:
+                images.append(container.image)
+
+        rollouts.append(
+            {
+                "revision": revision,
+                "replicas": replicas,
+                "ready_replicas": ready_replicas,
+                "image": ",".join(images),
+                "created_at": (
+                    replica_set.metadata.creation_timestamp
+                ),
+                "is_current": revision == current_revision,
+            }
+        )
+
+    rollouts.sort(
+        key=lambda rollout: rollout["revision"],
+        reverse=True,
+    )
+
+    return rollouts
