@@ -360,6 +360,63 @@ def get_pod_detail(
     }
 
 
+def get_pod_restarts(
+    namespace: str,
+    pod: str,
+):
+    v1 = get_core_v1()
+
+    pod_obj = v1.read_namespaced_pod(
+        name=pod,
+        namespace=namespace,
+    )
+
+    restarts = []
+
+    for status in (
+        pod_obj.status.container_statuses or []
+    ):
+        if status.restart_count == 0:
+            continue
+
+        last_state = status.last_state
+
+        if not last_state:
+            continue
+
+        terminated = last_state.terminated
+
+        if not terminated:
+            continue
+
+        restarts.append(
+            {
+                "container": status.name,
+                "restart_count": status.restart_count,
+                "reason": terminated.reason,
+                "exit_code": terminated.exit_code,
+                "signal": terminated.signal,
+                "started_at": (
+                    terminated.started_at.isoformat()
+                    if terminated.started_at
+                    else None
+                ),
+                "finished_at": (
+                    terminated.finished_at.isoformat()
+                    if terminated.finished_at
+                    else None
+                ),
+            }
+        )
+
+    restarts.sort(
+        key=lambda x: x["finished_at"] or "",
+        reverse=True,
+    )
+
+    return restarts
+
+
 def get_deployment_rollouts(
     namespace: str,
     deployment_name: str,

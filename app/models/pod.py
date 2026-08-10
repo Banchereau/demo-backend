@@ -10,31 +10,28 @@ class Pod(BaseModel):
     age: str
 
 
-class PodOwnerReference(BaseModel):
-    api_version: str
-    kind: str
-    name: str
-    uid: str
-
-
 class PodDetail(BaseModel):
     name: str
     namespace: str
-
     status: str
     restarts: int
     node: str | None
     age: str
-
     pod_ip: str | None
     host_ip: str | None
-
     service_account: str | None
-
     containers: list[str]
     images: list[str]
-
     labels: dict[str, str]
     annotations: dict[str, str]
+    owner_references: list[dict[str, str | None]]
 
-    owner_references: list[PodOwnerReference]
+
+class PodRestart(BaseModel):
+    container: str
+    restart_count: int
+    reason: str | None
+    exit_code: int | None
+    signal: int | None
+    started_at: str | None
+    finished_at: str | None

@@ -2,10 +2,15 @@ from fastapi import APIRouter, HTTPException
 from kubernetes.client.exceptions import ApiException
 
 from app.models.event import KubernetesEvent
-from app.models.pod import Pod, PodDetail
+from app.models.pod import (
+    Pod,
+    PodDetail,
+    PodRestart,
+)
 from app.services.kubernetes import (
     get_pod_detail,
     get_pod_events,
+    get_pod_restarts,
     get_pods,
 )
 
@@ -56,6 +61,25 @@ def pod_events(
 ):
     try:
         return get_pod_events(
+            namespace=namespace,
+            pod=pod,
+        )
+    except ApiException as e:
+        raise HTTPException(
+            status_code=e.status,
+            detail=e.reason,
+        )
+
+@router.get(
+    "/pods/{namespace}/{pod}/restarts",
+    response_model=list[PodRestart],
+)
+def pod_restarts(
+    namespace: str,
+    pod: str,
+):
+    try:
+        return get_pod_restarts(
             namespace=namespace,
             pod=pod,
         )

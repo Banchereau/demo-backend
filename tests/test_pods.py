@@ -282,3 +282,35 @@ def test_pod_detail_kubernetes_error(client):
     data = response.json()
 
     assert data["detail"] == "Not Found"
+
+
+def test_pod_restarts(client):
+    mock_restarts = [
+        {
+            "container": "backend",
+            "restart_count": 2,
+            "reason": "Error",
+            "exit_code": 1,
+            "signal": 0,
+            "started_at": "2026-08-10T16:40:00+00:00",
+            "finished_at": "2026-08-10T16:42:00+00:00",
+        }
+    ]
+
+    with patch(
+        "app.api.pods.get_pod_restarts",
+        return_value=mock_restarts,
+    ):
+        response = client.get(
+            "/pods/default/demo-backend-12345/restarts"
+        )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["container"] == "backend"
+    assert data[0]["restart_count"] == 2
+    assert data[0]["reason"] == "Error"
+    assert data[0]["exit_code"] == 1
