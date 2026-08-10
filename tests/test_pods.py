@@ -191,8 +191,27 @@ def test_pod_detail(client):
         "pod_ip": "10.42.0.15",
         "host_ip": "192.168.1.93",
         "service_account": "default",
-        "containers": ["demo-backend"],
-        "images": ["ghcr.io/banchereau/demo-backend:latest"],
+        "containers": [
+            "demo-backend",
+        ],
+        "images": [
+            "ghcr.io/banchereau/demo-backend:latest",
+        ],
+        "labels": {
+            "app": "demo-backend",
+            "pod-template-hash": "5c8fb9964f",
+        },
+        "annotations": {
+            "example.com/test": "value",
+        },
+        "owner_references": [
+            {
+                "api_version": "apps/v1",
+                "kind": "ReplicaSet",
+                "name": "demo-backend-5c8fb9964f",
+                "uid": "12345678-1234-1234-1234-123456789abc",
+            }
+        ],
     }
 
     with patch(
@@ -212,8 +231,38 @@ def test_pod_detail(client):
     assert data["status"] == "Running"
     assert data["restarts"] == 2
     assert data["node"] == "rpi"
-    assert data["pod_ip"] == "10.42.0.15"
-    assert data["containers"] == ["demo-backend"]
+
+    assert data["containers"] == [
+        "demo-backend"
+    ]
+
+    assert data["images"] == [
+        "ghcr.io/banchereau/demo-backend:latest"
+    ]
+
+    assert data["labels"]["app"] == "demo-backend"
+
+    assert (
+        data["labels"]["pod-template-hash"]
+        == "5c8fb9964f"
+    )
+
+    assert (
+        data["annotations"]["example.com/test"]
+        == "value"
+    )
+
+    assert len(data["owner_references"]) == 1
+
+    owner = data["owner_references"][0]
+
+    assert owner["api_version"] == "apps/v1"
+    assert owner["kind"] == "ReplicaSet"
+    assert owner["name"] == "demo-backend-5c8fb9964f"
+    assert (
+        owner["uid"]
+        == "12345678-1234-1234-1234-123456789abc"
+    )
 
 
 def test_pod_detail_kubernetes_error(client):

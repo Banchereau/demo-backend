@@ -316,6 +316,28 @@ def get_pod_detail(
         containers.append(container.name)
         images.append(container.image)
 
+    labels = dict(
+        pod_obj.metadata.labels or {}
+    )
+
+    annotations = dict(
+        pod_obj.metadata.annotations or {}
+    )
+
+    owner_references = []
+
+    for owner in (
+        pod_obj.metadata.owner_references or []
+    ):
+        owner_references.append(
+            {
+                "api_version": owner.api_version,
+                "kind": owner.kind,
+                "name": owner.name,
+                "uid": owner.uid,
+            }
+        )
+
     return {
         "name": pod_obj.metadata.name,
         "namespace": pod_obj.metadata.namespace,
@@ -327,9 +349,14 @@ def get_pod_detail(
         ),
         "pod_ip": pod_obj.status.pod_ip,
         "host_ip": pod_obj.status.host_ip,
-        "service_account": pod_obj.spec.service_account_name,
+        "service_account": (
+            pod_obj.spec.service_account_name
+        ),
         "containers": containers,
         "images": images,
+        "labels": labels,
+        "annotations": annotations,
+        "owner_references": owner_references,
     }
 
 
