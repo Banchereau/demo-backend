@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import cluster, health, pods, services, version, deployments, namespaces, events, certificates, ingresses, applications, platform, exec
 from app.core import APP_NAME, APP_VERSION
 from app.api.logs import router as logs_router
+from app.api.database import router as database_router
 
 app = FastAPI(
     title="Demo Backend",
@@ -54,3 +55,4 @@ app.include_router(applications.router)
 app.include_router(platform.router)
 app.include_router(logs_router)
 app.include_router(exec.router)
+app.include_router(database_router)
