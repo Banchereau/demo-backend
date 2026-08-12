@@ -15,6 +15,10 @@ class Settings:
     db_name: str = os.environ.get("DB_NAME", "")
     db_user: str = os.environ.get("DB_USER", "")
     db_password: str = os.environ.get("DB_PASSWORD", "")
-
+    jwt_secret_key: str = os.environ.get("JWT_SECRET_KEY", "")
+    jwt_algorithm: str = os.environ.get("JWT_ALGORITHM", "HS256")
+    jwt_access_token_expire_minutes: int = int(
+        os.environ.get("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "60")
+    )
 
 settings = Settings()
