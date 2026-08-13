@@ -1,11 +1,23 @@
 import asyncio
 
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    WebSocket,
+    WebSocketDisconnect,
+)
 
-from app.services.logs import get_pod_logs, stream_pod_logs
+from app.core.security import get_current_user
+from app.services.logs import (
+    get_pod_logs,
+    stream_pod_logs,
+)
 
 
-router = APIRouter()
+router = APIRouter(
+    dependencies=[Depends(get_current_user)],
+)
 
 
 @router.get("/pods/{namespace}/{pod}/logs")

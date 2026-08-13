@@ -3,8 +3,7 @@ from unittest.mock import patch
 from kubernetes.client.exceptions import ApiException
 
 
-def test_deployments(client):
-
+def test_deployments(authenticated_client):
     mock_deployments = [
         {
             "name": "demo-backend",
@@ -21,7 +20,7 @@ def test_deployments(client):
         "app.api.deployments.get_deployments",
         return_value=mock_deployments,
     ):
-        response = client.get("/deployments")
+        response = authenticated_client.get("/deployments")
 
     assert response.status_code == 200
 
@@ -41,8 +40,7 @@ def test_deployments(client):
     )
 
 
-def test_deployments_kubernetes_error(client):
-
+def test_deployments_kubernetes_error(authenticated_client):
     with patch(
         "app.api.deployments.get_deployments",
         side_effect=ApiException(
@@ -50,7 +48,7 @@ def test_deployments_kubernetes_error(client):
             reason="Forbidden",
         ),
     ):
-        response = client.get("/deployments")
+        response = authenticated_client.get("/deployments")
 
     assert response.status_code == 403
 
@@ -59,8 +57,7 @@ def test_deployments_kubernetes_error(client):
     }
 
 
-def test_deployment_rollouts(client):
-
+def test_deployment_rollouts(authenticated_client):
     mock_rollouts = [
         {
             "revision": 5,
@@ -84,7 +81,7 @@ def test_deployment_rollouts(client):
         "app.api.deployments.get_deployment_rollouts",
         return_value=mock_rollouts,
     ):
-        response = client.get(
+        response = authenticated_client.get(
             "/deployments/default/demo-backend/rollouts"
         )
 
@@ -107,8 +104,7 @@ def test_deployment_rollouts(client):
     assert data[1]["is_current"] is False
 
 
-def test_deployment_rollouts_kubernetes_error(client):
-
+def test_deployment_rollouts_kubernetes_error(authenticated_client):
     with patch(
         "app.api.deployments.get_deployment_rollouts",
         side_effect=ApiException(
@@ -116,7 +112,7 @@ def test_deployment_rollouts_kubernetes_error(client):
             reason="Forbidden",
         ),
     ):
-        response = client.get(
+        response = authenticated_client.get(
             "/deployments/default/demo-backend/rollouts"
         )
 

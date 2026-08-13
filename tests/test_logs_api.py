@@ -1,10 +1,8 @@
-from fastapi.testclient import TestClient
+from kubernetes.client.exceptions import ApiException
 
 
-def test_pod_logs_endpoint(monkeypatch, client: TestClient):
-
+def test_pod_logs_endpoint(monkeypatch, authenticated_client):
     class MockCoreApi:
-
         def read_namespaced_pod_log(
             self,
             name,
@@ -30,7 +28,7 @@ def test_pod_logs_endpoint(monkeypatch, client: TestClient):
         lambda: MockCoreApi(),
     )
 
-    response = client.get(
+    response = authenticated_client.get(
         "/pods/default/demo-backend-12345/logs"
     )
 
@@ -45,10 +43,11 @@ def test_pod_logs_endpoint(monkeypatch, client: TestClient):
     assert "Listening on port 8000" in data["logs"]
 
 
-def test_pod_logs_endpoint_with_parameters(monkeypatch, client):
-
+def test_pod_logs_endpoint_with_parameters(
+    monkeypatch,
+    authenticated_client,
+):
     class MockCoreApi:
-
         def read_namespaced_pod_log(
             self,
             name,
@@ -70,7 +69,7 @@ def test_pod_logs_endpoint_with_parameters(monkeypatch, client):
         lambda: MockCoreApi(),
     )
 
-    response = client.get(
+    response = authenticated_client.get(
         "/pods/default/demo-backend-12345/logs"
         "?tail=50"
         "&timestamps=true"
@@ -85,10 +84,11 @@ def test_pod_logs_endpoint_with_parameters(monkeypatch, client):
     assert data["logs"] == "previous container logs"
 
 
-def test_pod_logs_kubernetes_error(monkeypatch, client):
-
+def test_pod_logs_kubernetes_error(
+    monkeypatch,
+    authenticated_client,
+):
     class MockCoreApi:
-
         def read_namespaced_pod_log(
             self,
             *args,
@@ -101,20 +101,23 @@ def test_pod_logs_kubernetes_error(monkeypatch, client):
         lambda: MockCoreApi(),
     )
 
-    response = client.get(
+    response = authenticated_client.get(
         "/pods/default/demo-backend-12345/logs"
     )
 
     assert response.status_code == 500
 
 
-def test_pod_logs_not_found(client, monkeypatch):
-
-    from kubernetes.client.exceptions import ApiException
-
+def test_pod_logs_not_found(
+    authenticated_client,
+    monkeypatch,
+):
     class MockCoreApi:
-
-        def read_namespaced_pod_log(self, *args, **kwargs):
+        def read_namespaced_pod_log(
+            self,
+            *args,
+            **kwargs,
+        ):
             raise ApiException(
                 status=404,
                 reason="Not Found",
@@ -125,7 +128,7 @@ def test_pod_logs_not_found(client, monkeypatch):
         lambda: MockCoreApi(),
     )
 
-    response = client.get(
+    response = authenticated_client.get(
         "/pods/default/does-not-exist/logs"
     )
 

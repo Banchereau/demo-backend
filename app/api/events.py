@@ -1,14 +1,14 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
+from app.core.security import get_current_user
 from app.models.event import KubernetesEvent
 from app.services.kubernetes import get_events
-
 
 router = APIRouter(
     prefix="/events",
     tags=["events"],
+    dependencies=[Depends(get_current_user)],
 )
-
 
 @router.get(
     "",

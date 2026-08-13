@@ -7,7 +7,7 @@ from app.api import certificates
 client = TestClient(app)
 
 
-def test_certificates_endpoint(monkeypatch):
+def test_certificates_endpoint(monkeypatch, authenticated_client):
     def mock_get_certificates(namespace=None):
         return [
             {
@@ -42,7 +42,7 @@ def test_certificates_endpoint(monkeypatch):
     assert data[0]["ready"] is True
 
 
-def test_certificates_namespace_filter(monkeypatch):
+def test_certificates_namespace_filter(monkeypatch, authenticated_client):
     called = {}
 
     def mock_get_certificates(namespace=None):
@@ -64,7 +64,7 @@ def test_certificates_namespace_filter(monkeypatch):
     assert called["namespace"] == "monitoring"
 
 
-def test_certificates_empty(monkeypatch):
+def test_certificates_empty(monkeypatch, authenticated_client):
     def mock_get_certificates(namespace=None):
         return []
 

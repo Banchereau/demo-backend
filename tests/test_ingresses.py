@@ -7,7 +7,7 @@ from app.api import ingresses
 client = TestClient(app)
 
 
-def test_ingresses_endpoint(monkeypatch):
+def test_ingresses_endpoint(monkeypatch, authenticated_client):
     def mock_get_ingresses(namespace=None):
         return [
             {
@@ -39,7 +39,7 @@ def test_ingresses_endpoint(monkeypatch):
     assert data[0]["tls_secret"] == "demo-backend-tls"
 
 
-def test_ingresses_namespace_filter(monkeypatch):
+def test_ingresses_namespace_filter(monkeypatch, authenticated_client):
     called = {}
 
     def mock_get_ingresses(namespace=None):
@@ -61,7 +61,7 @@ def test_ingresses_namespace_filter(monkeypatch):
     assert called["namespace"] == "monitoring"
 
 
-def test_ingresses_empty(monkeypatch):
+def test_ingresses_empty(monkeypatch, authenticated_client):
     def mock_get_ingresses(namespace=None):
         return []
 

@@ -1,7 +1,9 @@
 from unittest.mock import patch
+
 from kubernetes.client.exceptions import ApiException
 
-def test_services(client):
+
+def test_services(authenticated_client):
     mock_services = [
         {
             "name": "demo-backend",
@@ -16,7 +18,7 @@ def test_services(client):
         "app.api.services.get_services",
         return_value=mock_services,
     ):
-        response = client.get("/services")
+        response = authenticated_client.get("/services")
 
     assert response.status_code == 200
 
@@ -27,7 +29,7 @@ def test_services(client):
     assert data[0]["type"] == "ClusterIP"
 
 
-def test_services_kubernetes_error(client):
+def test_services_kubernetes_error(authenticated_client):
     with patch(
         "app.api.services.get_services",
         side_effect=ApiException(
@@ -35,7 +37,7 @@ def test_services_kubernetes_error(client):
             reason="Forbidden",
         ),
     ):
-        response = client.get("/services")
+        response = authenticated_client.get("/services")
 
     assert response.status_code == 403
 

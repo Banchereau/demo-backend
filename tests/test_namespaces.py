@@ -7,23 +7,27 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_get_namespaces():
+def test_get_namespaces(
+    authenticated_client,
+):
     mock_namespaces = [
         {
             "name": "default",
-            "status": "Active"
+            "status": "Active",
         },
         {
             "name": "monitoring",
-            "status": "Active"
-        }
+            "status": "Active",
+        },
     ]
 
     with patch(
         "app.api.namespaces.get_namespaces",
-        return_value=mock_namespaces
+        return_value=mock_namespaces,
     ):
-        response = client.get("/namespaces")
+        response = authenticated_client.get(
+            "/namespaces"
+        )
 
     assert response.status_code == 200
 
@@ -35,19 +39,25 @@ def test_get_namespaces():
     assert data["namespaces"][0]["status"] == "Active"
 
 
-def test_get_namespaces_structure():
+def test_get_namespaces_structure(
+    authenticated_client,
+):
     mock_namespaces = [
         {
             "name": "kube-system",
-            "status": "Active"
+            "status": "Active",
         }
     ]
 
     with patch(
         "app.api.namespaces.get_namespaces",
-        return_value=mock_namespaces
+        return_value=mock_namespaces,
     ):
-        response = client.get("/namespaces")
+        response = authenticated_client.get(
+            "/namespaces"
+        )
+
+    assert response.status_code == 200
 
     data = response.json()
 
@@ -57,13 +67,18 @@ def test_get_namespaces_structure():
     assert "status" in namespace
 
 
-def test_get_namespaces_error():
-
+def test_get_namespaces_error(
+    authenticated_client,
+):
     with patch(
         "app.api.namespaces.get_namespaces",
-        side_effect=Exception("Kubernetes API unavailable")
+        side_effect=Exception(
+            "Kubernetes API unavailable"
+        ),
     ):
-        response = client.get("/namespaces")
+        response = authenticated_client.get(
+            "/namespaces"
+        )
 
     assert response.status_code == 200
 
@@ -71,4 +86,7 @@ def test_get_namespaces_error():
 
     assert data["status"] == "unhealthy"
     assert data["namespaces"] == []
-    assert "Kubernetes API unavailable" in data["error"]
+    assert (
+        "Kubernetes API unavailable"
+        in data["error"]
+    )

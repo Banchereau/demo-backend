@@ -1,6 +1,6 @@
-from app.main import app
 from fastapi.testclient import TestClient
 
+from app.main import app
 from app.api import events
 
 
@@ -25,20 +25,26 @@ def fake_events(
     ]
 
 
-def test_events_endpoint(monkeypatch):
+def test_events_endpoint(
+    monkeypatch,
+    authenticated_client,
+):
     monkeypatch.setattr(
         events,
         "get_events",
         fake_events,
     )
 
-    response = client.get("/events")
+    response = authenticated_client.get("/events")
 
     assert response.status_code == 200
     assert len(response.json()) == 1
 
 
-def test_events_limit_parameter(monkeypatch):
+def test_events_limit_parameter(
+    monkeypatch,
+    authenticated_client,
+):
     called = {}
 
     def fake_events(
@@ -55,12 +61,18 @@ def test_events_limit_parameter(monkeypatch):
         fake_events,
     )
 
-    response = client.get("/events?limit=10")
+    response = authenticated_client.get(
+        "/events?limit=10"
+    )
 
     assert response.status_code == 200
     assert called["limit"] == 10
 
-def test_events_namespace_filter(monkeypatch):
+
+def test_events_namespace_filter(
+    monkeypatch,
+    authenticated_client,
+):
     called = {}
 
     def fake_events(
@@ -77,7 +89,7 @@ def test_events_namespace_filter(monkeypatch):
         fake_events,
     )
 
-    response = client.get(
+    response = authenticated_client.get(
         "/events?namespace=default"
     )
 
@@ -85,7 +97,10 @@ def test_events_namespace_filter(monkeypatch):
     assert called["namespace"] == "default"
 
 
-def test_events_type_filter(monkeypatch):
+def test_events_type_filter(
+    monkeypatch,
+    authenticated_client,
+):
     called = {}
 
     def fake_events(
@@ -102,7 +117,7 @@ def test_events_type_filter(monkeypatch):
         fake_events,
     )
 
-    response = client.get(
+    response = authenticated_client.get(
         "/events?type=Warning"
     )
 
@@ -110,16 +125,20 @@ def test_events_type_filter(monkeypatch):
     assert called["event_type"] == "Warning"
 
 
-def test_events_invalid_limit():
-    response = client.get(
+def test_events_invalid_limit(
+    authenticated_client,
+):
+    response = authenticated_client.get(
         "/events?limit=0"
     )
 
     assert response.status_code == 422
 
 
-def test_events_limit_maximum():
-    response = client.get(
+def test_events_limit_maximum(
+    authenticated_client,
+):
+    response = authenticated_client.get(
         "/events?limit=201"
     )
 

@@ -1,8 +1,7 @@
 from unittest.mock import patch
 
 
-def test_get_applications(client):
-
+def test_get_applications(authenticated_client):
     mock_applications = [
         {
             "name": "demo-backend",
@@ -27,7 +26,7 @@ def test_get_applications(client):
         "app.api.applications.get_applications",
         return_value=mock_applications,
     ):
-        response = client.get("/applications")
+        response = authenticated_client.get("/applications")
 
     assert response.status_code == 200
 
@@ -38,8 +37,7 @@ def test_get_applications(client):
     assert data[0]["status"] == "healthy"
 
 
-def test_demo_backend_application_exists(client):
-
+def test_demo_backend_application_exists(authenticated_client):
     mock_applications = [
         {
             "name": "demo-backend",
@@ -64,7 +62,7 @@ def test_demo_backend_application_exists(client):
         "app.api.applications.get_applications",
         return_value=mock_applications,
     ):
-        response = client.get("/applications")
+        response = authenticated_client.get("/applications")
 
     applications = response.json()
 
@@ -74,8 +72,7 @@ def test_demo_backend_application_exists(client):
     )
 
 
-def test_application_structure(client):
-
+def test_application_structure(authenticated_client):
     mock_applications = [
         {
             "name": "demo-backend",
@@ -96,7 +93,7 @@ def test_application_structure(client):
         "app.api.applications.get_applications",
         return_value=mock_applications,
     ):
-        response = client.get("/applications")
+        response = authenticated_client.get("/applications")
 
     app = response.json()[0]
 

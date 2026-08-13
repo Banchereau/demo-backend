@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 from kubernetes.client.exceptions import ApiException
 
 
-def test_pods(client):
+def test_pods(authenticated_client):
     mock_pods = [
         {
             "name": "demo-frontend-12345",
@@ -20,7 +20,7 @@ def test_pods(client):
         "app.api.pods.get_pods",
         return_value=mock_pods,
     ):
-        response = client.get("/pods")
+        response = authenticated_client.get("/pods")
 
     assert response.status_code == 200
 
@@ -31,7 +31,7 @@ def test_pods(client):
     assert data[0]["status"] == "Running"
 
 
-def test_pods_kubernetes_error(client):
+def test_pods_kubernetes_error(authenticated_client):
     with patch(
         "app.api.pods.get_pods",
         side_effect=ApiException(
@@ -39,7 +39,7 @@ def test_pods_kubernetes_error(client):
             reason="Forbidden",
         ),
     ):
-        response = client.get("/pods")
+        response = authenticated_client.get("/pods")
 
     assert response.status_code == 403
 
@@ -48,7 +48,7 @@ def test_pods_kubernetes_error(client):
     assert data["detail"] == "Forbidden"
 
 
-def test_pod_events(client):
+def test_pod_events(authenticated_client):
     mock_events = [
         {
             "namespace": "default",
@@ -65,7 +65,7 @@ def test_pod_events(client):
         "app.api.pods.get_pod_events",
         return_value=mock_events,
     ):
-        response = client.get(
+        response = authenticated_client.get(
             "/pods/default/demo-backend-12345/events"
         )
 
@@ -79,7 +79,7 @@ def test_pod_events(client):
     assert data[0]["involved_object"] == "Pod/demo-backend-12345"
 
 
-def test_pod_events_kubernetes_error(client):
+def test_pod_events_kubernetes_error(authenticated_client):
     with patch(
         "app.api.pods.get_pod_events",
         side_effect=ApiException(
@@ -87,7 +87,7 @@ def test_pod_events_kubernetes_error(client):
             reason="Forbidden",
         ),
     ):
-        response = client.get(
+        response = authenticated_client.get(
             "/pods/default/demo-backend-12345/events"
         )
 
@@ -180,7 +180,7 @@ def test_get_pod_events_filters_by_pod():
     assert result[0]["reason"] == "Unhealthy"
 
 
-def test_pod_detail(client):
+def test_pod_detail(authenticated_client):
     mock_pod = {
         "name": "demo-backend-12345",
         "namespace": "default",
@@ -218,7 +218,7 @@ def test_pod_detail(client):
         "app.api.pods.get_pod_detail",
         return_value=mock_pod,
     ):
-        response = client.get(
+        response = authenticated_client.get(
             "/pods/default/demo-backend-12345"
         )
 
@@ -265,7 +265,7 @@ def test_pod_detail(client):
     )
 
 
-def test_pod_detail_kubernetes_error(client):
+def test_pod_detail_kubernetes_error(authenticated_client):
     with patch(
         "app.api.pods.get_pod_detail",
         side_effect=ApiException(
@@ -273,7 +273,7 @@ def test_pod_detail_kubernetes_error(client):
             reason="Not Found",
         ),
     ):
-        response = client.get(
+        response = authenticated_client.get(
             "/pods/default/unknown-pod"
         )
 
@@ -284,7 +284,7 @@ def test_pod_detail_kubernetes_error(client):
     assert data["detail"] == "Not Found"
 
 
-def test_pod_restarts(client):
+def test_pod_restarts(authenticated_client):
     mock_restarts = [
         {
             "container": "backend",
@@ -301,7 +301,7 @@ def test_pod_restarts(client):
         "app.api.pods.get_pod_restarts",
         return_value=mock_restarts,
     ):
-        response = client.get(
+        response = authenticated_client.get(
             "/pods/default/demo-backend-12345/restarts"
         )
 

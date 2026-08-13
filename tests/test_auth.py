@@ -183,6 +183,8 @@ def test_me_success(client):
     from app.main import app
     from app.core.security import get_current_user
 
+    previous_override = app.dependency_overrides.get(get_current_user)
+
     app.dependency_overrides[get_current_user] = fake_get_current_user
 
     try:
@@ -193,7 +195,10 @@ def test_me_success(client):
             },
         )
     finally:
-        app.dependency_overrides.clear()
+        if previous_override is None:
+            app.dependency_overrides.pop(get_current_user, None)
+        else:
+            app.dependency_overrides[get_current_user] = previous_override
 
     assert response.status_code == 200
 
