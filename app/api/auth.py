@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -6,7 +6,6 @@ from app.core.security import create_access_token, get_current_user
 from app.db.models.user import User
 from app.repositories.user import UserRepository
 from app.schemas.user import (
-    TokenResponse,
     UserCreate,
     UserLogin,
     UserResponse,
@@ -46,10 +45,11 @@ async def register(
 
 @router.post(
     "/login",
-    response_model=TokenResponse,
+    status_code=status.HTTP_204_NO_CONTENT,
 )
 async def login(
     data: UserLogin,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ):
     repository = UserRepository(db)
@@ -69,9 +69,14 @@ async def login(
 
     access_token = create_access_token(str(user.id))
 
-    return TokenResponse(
-        access_token=access_token,
-        token_type="bearer",
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=60 * 60,
+        path="/",
     )
 
 
@@ -83,3 +88,11 @@ async def get_me(
     current_user: User = Depends(get_current_user),
 ):
     return current_user
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(response: Response):
+    response.delete_cookie(
+        key="access_token",
+        path="/",
+    )

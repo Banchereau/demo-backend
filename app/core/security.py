@@ -2,8 +2,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 import jwt
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Cookie, Depends, HTTPException, status
 from pwdlib import PasswordHash
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,8 +13,6 @@ from app.repositories.user import UserRepository
 
 
 password_hash = PasswordHash.recommended()
-
-bearer_scheme = HTTPBearer()
 
 
 def hash_password(password: str) -> str:
@@ -44,7 +41,7 @@ def create_access_token(subject: str) -> str:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    access_token: str | None = Cookie(default=None),
     db: AsyncSession = Depends(get_db),
 ) -> User:
     credentials_exception = HTTPException(
@@ -53,9 +50,12 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
+    if access_token is None:
+        raise credentials_exception
+
     try:
         payload = jwt.decode(
-            credentials.credentials,
+            access_token,
             settings.jwt_secret_key,
             algorithms=[settings.jwt_algorithm],
         )

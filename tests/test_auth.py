@@ -132,11 +132,8 @@ def test_login_success(client, monkeypatch):
         },
     )
 
-    assert response.status_code == 200
-    assert response.json() == {
-        "access_token": "test-access-token",
-        "token_type": "bearer",
-    }
+    assert response.status_code == 204
+    assert response.cookies.get("access_token") == "test-access-token"
 
 
 def test_login_invalid_credentials(client, monkeypatch):
@@ -190,8 +187,8 @@ def test_me_success(client):
     try:
         response = client.get(
             "/auth/me",
-            headers={
-                "Authorization": "Bearer test-access-token",
+            cookies={
+                "access_token": "test-access-token",
             },
         )
     finally:
@@ -215,16 +212,19 @@ def test_me_without_token(client):
 
     assert response.status_code == 401
     assert response.json() == {
-        "detail": "Not authenticated"
+        "detail": "Invalid authentication credentials"
     }
 
 
 def test_me_invalid_token(client):
     response = client.get(
         "/auth/me",
-        headers={
-            "Authorization": "Bearer invalid-token",
+        cookies={
+            "access_token": "invalid-token",
         },
     )
 
     assert response.status_code == 401
+    assert response.json() == {
+        "detail": "Invalid authentication credentials"
+    }
