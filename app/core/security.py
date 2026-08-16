@@ -2,7 +2,14 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 import jwt
-from fastapi import Cookie, Depends, HTTPException, status
+from fastapi import (
+    Cookie,
+    Depends,
+    HTTPException,
+    WebSocket,
+    WebSocketDisconnect,
+    status,
+)
 from pwdlib import PasswordHash
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -75,5 +82,44 @@ async def get_current_user(
 
     if user is None or not user.is_active:
         raise credentials_exception
+
+    return user
+
+
+async def get_current_user_ws(
+    websocket: WebSocket,
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    access_token = websocket.cookies.get("access_token")
+
+    if access_token is None:
+        await websocket.close(code=1008)
+        raise WebSocketDisconnect()
+
+    try:
+        payload = jwt.decode(
+            access_token,
+            settings.jwt_secret_key,
+            algorithms=[settings.jwt_algorithm],
+        )
+
+        subject = payload.get("sub")
+
+        if subject is None:
+            await websocket.close(code=1008)
+            raise WebSocketDisconnect()
+
+        user_id = UUID(subject)
+
+    except (jwt.InvalidTokenError, ValueError):
+        await websocket.close(code=1008)
+        raise WebSocketDisconnect()
+
+    repository = UserRepository(db)
+    user = await repository.get_by_id(user_id)
+
+    if user is None or not user.is_active:
+        await websocket.close(code=1008)
+        raise WebSocketDisconnect()
 
     return user

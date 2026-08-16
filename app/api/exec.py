@@ -1,11 +1,11 @@
 import asyncio
 import traceback
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from kubernetes.client.exceptions import ApiException
 
 from app.services.pod_exec import connect_pod_exec
-
+from app.core.security import get_current_user_ws
 
 router = APIRouter(
     prefix="/exec",
@@ -56,6 +56,7 @@ async def exec_pod(
     websocket: WebSocket,
     namespace: str,
     pod: str,
+    current_user=Depends(get_current_user_ws),
 ):
     await websocket.accept()
 

@@ -8,7 +8,7 @@ from fastapi import (
     WebSocketDisconnect,
 )
 
-from app.core.security import get_current_user
+from app.core.security import get_current_user, get_current_user_ws
 from app.services.logs import (
     get_pod_logs,
     stream_pod_logs,
@@ -58,6 +58,7 @@ async def pod_logs_stream(
     timestamps: bool = False,
     previous: bool = False,
     container: str | None = None,
+    current_user=Depends(get_current_user_ws),
 ):
     await websocket.accept()
 
