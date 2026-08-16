@@ -72,6 +72,7 @@ async def login(
     response.set_cookie(
         key="access_token",
         value=access_token,
+        domain=".xcodewhisperer.fr",
         httponly=True,
         secure=True,
         samesite="lax",
@@ -94,5 +95,6 @@ async def get_me(
 async def logout(response: Response):
     response.delete_cookie(
         key="access_token",
+        domain=".xcodewhisperer.fr",
         path="/",
     )

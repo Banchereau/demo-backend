@@ -133,8 +133,14 @@ def test_login_success(client, monkeypatch):
     )
 
     assert response.status_code == 204
-    assert response.cookies.get("access_token") == "test-access-token"
+    set_cookie = response.headers["set-cookie"]
 
+    assert "access_token=test-access-token" in set_cookie
+    assert "Domain=.xcodewhisperer.fr" in set_cookie
+    assert "HttpOnly" in set_cookie
+    assert "Secure" in set_cookie
+    assert "SameSite=lax" in set_cookie
+    assert "Path=/" in set_cookie
 
 def test_login_invalid_credentials(client, monkeypatch):
     from app.services.users import InvalidCredentialsError
