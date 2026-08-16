@@ -15,12 +15,13 @@ from app.services.logs import (
 )
 
 
-router = APIRouter(
+router = APIRouter()
+
+
+@router.get(
+    "/pods/{namespace}/{pod}/logs",
     dependencies=[Depends(get_current_user)],
 )
-
-
-@router.get("/pods/{namespace}/{pod}/logs")
 def pod_logs(
     namespace: str,
     pod: str,

@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from kubernetes.client.exceptions import ApiException, NotFoundException
 from app.services.pod_exec import connect_pod_exec
-
+from fastapi import WebSocketDisconnect
 
 def test_connect_pod_exec_pod_not_found():
     api = MagicMock()
@@ -117,3 +117,48 @@ def test_connect_pod_exec_forbidden():
             )
 
     assert exc.value.status == 403
+
+
+def test_exec_websocket_requires_authentication(client):
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect(
+            "/exec/default/demo-pod"
+        ):
+            pass
+
+
+def test_exec_websocket_authenticated(
+    authenticated_ws_client,
+):
+    with patch(
+        "app.api.exec.connect_pod_exec"
+    ) as mock_connect:
+        shell = MagicMock()
+        shell.is_open.return_value = False
+        mock_connect.return_value = shell
+
+        with authenticated_ws_client.websocket_connect(
+            "/exec/default/demo-pod"
+        ) as websocket:
+            message = websocket.receive_text()
+
+        assert message == "Connected to pod shell\r\n"
+        mock_connect.assert_called_once_with(
+            "default",
+            "demo-pod",
+        )
+
+
+def test_exec_websocket_unauthenticated_does_not_reach_kubernetes(
+    client,
+):
+    with patch(
+        "app.api.exec.connect_pod_exec"
+    ) as mock_connect:
+        with pytest.raises(WebSocketDisconnect):
+            with client.websocket_connect(
+                "/exec/default/demo-pod"
+            ):
+                pass
+
+        mock_connect.assert_not_called()

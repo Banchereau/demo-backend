@@ -1,3 +1,8 @@
+from unittest.mock import MagicMock, patch
+
+import pytest
+from fastapi import WebSocketDisconnect
+
 from kubernetes.client.exceptions import ApiException
 
 
@@ -134,3 +139,63 @@ def test_pod_logs_not_found(
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Pod not found"
+
+
+def test_pod_logs_websocket_requires_authentication(client):
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect(
+            "/logs/default/demo-backend-12345"
+        ):
+            pass
+
+
+def test_pod_logs_websocket_unauthenticated_does_not_reach_kubernetes(
+    client,
+):
+    with patch(
+        "app.api.logs.stream_pod_logs"
+    ) as mock_stream:
+        with pytest.raises(WebSocketDisconnect):
+            with client.websocket_connect(
+                "/logs/default/demo-backend-12345"
+            ):
+                pass
+
+        mock_stream.assert_not_called()
+
+
+def test_pod_logs_websocket_authenticated(
+    authenticated_ws_client,
+):
+    response = MagicMock()
+
+    response.stream.return_value = iter(
+        [
+            b"INFO Application started\n",
+            b"INFO Listening on port 8000\n",
+        ]
+    )
+
+    with patch(
+        "app.api.logs.stream_pod_logs",
+        return_value=response,
+    ) as mock_stream:
+        with authenticated_ws_client.websocket_connect(
+            "/logs/default/demo-backend-12345"
+        ) as websocket:
+            first = websocket.receive_text()
+            second = websocket.receive_text()
+
+        assert first == "INFO Application started\n"
+        assert second == "INFO Listening on port 8000\n"
+
+        mock_stream.assert_called_once_with(
+            namespace="default",
+            pod="demo-backend-12345",
+            tail_lines=20,
+            timestamps=False,
+            previous=False,
+            container=None,
+        )
+
+        response.close.assert_called_once()

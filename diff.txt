@@ -1,0 +1,103 @@
+diff --git a/app/api/exec.py b/app/api/exec.py
+index 84c90d9..e3dc070 100644
+--- a/app/api/exec.py
++++ b/app/api/exec.py
+@@ -1,11 +1,11 @@
+ import asyncio
+ import traceback
+ 
+-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
++from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
+ from kubernetes.client.exceptions import ApiException
+ 
+ from app.services.pod_exec import connect_pod_exec
+-
++from app.core.security import get_current_user_ws
+ 
+ router = APIRouter(
+     prefix="/exec",
+@@ -56,6 +56,7 @@ async def exec_pod(
+     websocket: WebSocket,
+     namespace: str,
+     pod: str,
++    current_user=Depends(get_current_user_ws),
+ ):
+     await websocket.accept()
+ 
+diff --git a/app/api/logs.py b/app/api/logs.py
+index 67f233e..45065b9 100644
+--- a/app/api/logs.py
++++ b/app/api/logs.py
+@@ -8,7 +8,7 @@ from fastapi import (
+     WebSocketDisconnect,
+ )
+ 
+-from app.core.security import get_current_user
++from app.core.security import get_current_user, get_current_user_ws
+ from app.services.logs import (
+     get_pod_logs,
+     stream_pod_logs,
+@@ -58,6 +58,7 @@ async def pod_logs_stream(
+     timestamps: bool = False,
+     previous: bool = False,
+     container: str | None = None,
++    current_user=Depends(get_current_user_ws),
+ ):
+     await websocket.accept()
+ 
+diff --git a/app/core/security.py b/app/core/security.py
+index 91f30f8..c8bcb2b 100644
+--- a/app/core/security.py
++++ b/app/core/security.py
+@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
+ from uuid import UUID
+ 
+ import jwt
+-from fastapi import Cookie, Depends, HTTPException, status
++from fastapi import Cookie, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
+ from pwdlib import PasswordHash
+ from sqlalchemy.ext.asyncio import AsyncSession
+ 
+@@ -77,3 +77,42 @@ async def get_current_user(
+         raise credentials_exception
+ 
+     return user
++
++
++async def get_current_user_ws(
++    websocket: WebSocket,
++    db: AsyncSession = Depends(get_db),
++) -> User:
++    access_token = websocket.cookies.get("access_token")
++
++    if access_token is None:
++        await websocket.close(code=1008)
++        raise WebSocketDisconnect()
++
++    try:
++        payload = jwt.decode(
++            access_token,
++            settings.jwt_secret_key,
++            algorithms=[settings.jwt_algorithm],
++        )
++
++        subject = payload.get("sub")
++
++        if subject is None:
++            await websocket.close(code=1008)
++            raise WebSocketDisconnect()
++
++        user_id = UUID(subject)
++
++    except (jwt.InvalidTokenError, ValueError):
++        await websocket.close(code=1008)
++        raise WebSocketDisconnect()
++
++    repository = UserRepository(db)
++    user = await repository.get_by_id(user_id)
++
++    if user is None or not user.is_active:
++        await websocket.close(code=1008)
++        raise WebSocketDisconnect()
++
++    return user
