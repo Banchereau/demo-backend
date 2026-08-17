@@ -3,7 +3,24 @@ from unittest.mock import MagicMock, patch
 import pytest
 from kubernetes.client.exceptions import ApiException, NotFoundException
 from app.services.pod_exec import connect_pod_exec
+from app.api.exec import is_exec_namespace_allowed
 from fastapi import WebSocketDisconnect
+
+
+def test_exec_websocket_forbidden_namespace_does_not_reach_kubernetes(
+    authenticated_ws_client,
+):
+    with patch(
+        "app.api.exec.connect_pod_exec"
+    ) as mock_connect:
+        with pytest.raises(WebSocketDisconnect):
+            with authenticated_ws_client.websocket_connect(
+                "/exec/kube-system/demo-pod"
+            ):
+                pass
+
+        mock_connect.assert_not_called()
+
 
 def test_connect_pod_exec_pod_not_found():
     api = MagicMock()
@@ -162,3 +179,40 @@ def test_exec_websocket_unauthenticated_does_not_reach_kubernetes(
                 pass
 
         mock_connect.assert_not_called()
+
+
+def test_exec_namespace_allowed():
+    allowed = ("default", "monitoring")
+
+    assert is_exec_namespace_allowed(
+        "default",
+        allowed,
+    )
+
+    assert is_exec_namespace_allowed(
+        "monitoring",
+        allowed,
+    )
+
+
+def test_exec_namespace_not_allowed():
+    allowed = ("default", "monitoring")
+
+    assert not is_exec_namespace_allowed(
+        "kube-system",
+        allowed,
+    )
+
+    assert not is_exec_namespace_allowed(
+        "flux-system",
+        allowed,
+    )
+
+
+def test_exec_namespace_empty_is_not_allowed():
+    allowed = ("default", "monitoring")
+
+    assert not is_exec_namespace_allowed(
+        "",
+        allowed,
+    )

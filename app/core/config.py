@@ -21,4 +21,14 @@ class Settings:
         os.environ.get("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "60")
     )
 
+    exec_allowed_namespaces: tuple[str, ...] = tuple(
+        namespace.strip()
+        for namespace in os.environ.get(
+            "EXEC_ALLOWED_NAMESPACES",
+            "default",
+        ).split(",")
+        if namespace.strip()
+    )
+
+
 settings = Settings()

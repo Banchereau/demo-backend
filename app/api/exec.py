@@ -6,11 +6,19 @@ from kubernetes.client.exceptions import ApiException
 
 from app.services.pod_exec import connect_pod_exec
 from app.core.security import get_current_user_ws
+from app.core.config import settings
 
 router = APIRouter(
     prefix="/exec",
     tags=["exec"],
 )
+
+
+def is_exec_namespace_allowed(
+    namespace: str,
+    allowed_namespaces: tuple[str, ...],
+) -> bool:
+    return namespace in allowed_namespaces
 
 
 async def read_pod_output(
@@ -58,6 +66,14 @@ async def exec_pod(
     pod: str,
     current_user=Depends(get_current_user_ws),
 ):
+
+    if not is_exec_namespace_allowed(
+        namespace,
+        settings.exec_allowed_namespaces,
+    ):
+        await websocket.close(code=1008)
+        return
+
     await websocket.accept()
 
     shell = None
