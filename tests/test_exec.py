@@ -71,7 +71,7 @@ def test_connect_pod_exec_container_not_found():
     assert "missing-container" in str(exc_info.value)
 
 
-def test_connect_pod_exec_uses_bash_and_tty():
+def test_connect_pod_exec_uses_sh_and_tty():
     api = MagicMock()
 
     pod = MagicMock()
@@ -106,7 +106,7 @@ def test_connect_pod_exec_uses_bash_and_tty():
 
     kwargs = mock_stream.call_args.kwargs
 
-    assert kwargs["command"] == ["/bin/bash"]
+    assert kwargs["command"] == ["/bin/sh"]
     assert kwargs["stdin"] is True
     assert kwargs["stdout"] is True
     assert kwargs["stderr"] is True

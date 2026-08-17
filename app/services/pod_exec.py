@@ -29,7 +29,7 @@ def connect_pod_exec(
             )
 
     command = [
-        "/bin/bash"
+        "/bin/sh"
     ]
 
     kwargs = {
