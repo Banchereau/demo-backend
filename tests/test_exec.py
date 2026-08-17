@@ -1,10 +1,11 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from kubernetes.client.exceptions import ApiException, NotFoundException
-from app.services.pod_exec import connect_pod_exec
-from app.api.exec import is_exec_namespace_allowed
 from fastapi import WebSocketDisconnect
+from kubernetes.client.exceptions import ApiException, NotFoundException
+
+from app.api.exec import is_exec_namespace_allowed
+from app.services.pod_exec import connect_pod_exec
 
 
 def test_exec_websocket_forbidden_namespace_does_not_reach_kubernetes(
@@ -15,7 +16,7 @@ def test_exec_websocket_forbidden_namespace_does_not_reach_kubernetes(
     ) as mock_connect:
         with pytest.raises(WebSocketDisconnect):
             with authenticated_ws_client.websocket_connect(
-                "/exec/kube-system/demo-pod"
+                "/exec/kube-system/demo-pod/backend"
             ):
                 pass
 
@@ -41,6 +42,7 @@ def test_connect_pod_exec_pod_not_found():
             )
 
     assert exc_info.value.status == 404
+
     api.read_namespaced_pod.assert_called_once_with(
         name="missing-pod",
         namespace="default",
@@ -139,7 +141,7 @@ def test_connect_pod_exec_forbidden():
 def test_exec_websocket_requires_authentication(client):
     with pytest.raises(WebSocketDisconnect):
         with client.websocket_connect(
-            "/exec/default/demo-pod"
+            "/exec/default/demo-pod/backend"
         ):
             pass
 
@@ -155,14 +157,41 @@ def test_exec_websocket_authenticated(
         mock_connect.return_value = shell
 
         with authenticated_ws_client.websocket_connect(
-            "/exec/default/demo-pod"
+            "/exec/default/demo-pod/backend"
         ) as websocket:
             message = websocket.receive_text()
 
         assert message == "Connected to pod shell\r\n"
+
         mock_connect.assert_called_once_with(
             "default",
             "demo-pod",
+            "backend",
+        )
+
+
+def test_exec_websocket_invalid_container_does_not_start_shell(
+    authenticated_ws_client,
+):
+    with patch(
+        "app.api.exec.connect_pod_exec"
+    ) as mock_connect:
+        mock_connect.side_effect = ApiException(
+            status=404,
+            reason="Container 'missing' not found",
+        )
+
+        with authenticated_ws_client.websocket_connect(
+            "/exec/default/demo-pod/missing"
+        ) as websocket:
+            message = websocket.receive_text()
+
+        assert "Container" in message
+
+        mock_connect.assert_called_once_with(
+            "default",
+            "demo-pod",
+            "missing",
         )
 
 
@@ -174,7 +203,7 @@ def test_exec_websocket_unauthenticated_does_not_reach_kubernetes(
     ) as mock_connect:
         with pytest.raises(WebSocketDisconnect):
             with client.websocket_connect(
-                "/exec/default/demo-pod"
+                "/exec/default/demo-pod/backend"
             ):
                 pass
 

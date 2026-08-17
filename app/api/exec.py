@@ -59,14 +59,14 @@ async def write_pod_input(
         shell.write_stdin(data)
 
 
-@router.websocket("/{namespace}/{pod}")
+@router.websocket("/{namespace}/{pod}/{container}")
 async def exec_pod(
     websocket: WebSocket,
     namespace: str,
     pod: str,
+    container: str,
     current_user=Depends(get_current_user_ws),
 ):
-
     if not is_exec_namespace_allowed(
         namespace,
         settings.exec_allowed_namespaces,
@@ -84,6 +84,7 @@ async def exec_pod(
         shell = connect_pod_exec(
             namespace,
             pod,
+            container,
         )
 
         await websocket.send_text(
@@ -130,10 +131,15 @@ async def exec_pod(
         status = getattr(e, "status", None)
 
         if status == 404:
-            message = (
-                f"\r\nERROR: Pod '{pod}' not found "
-                f"in namespace '{namespace}'.\r\n"
-            )
+            reason = str(getattr(e, "reason", ""))
+
+            if reason.startswith("Container "):
+                message = f"\r\nERROR: {reason}.\r\n"
+            else:
+                message = (
+                    f"\r\nERROR: Pod '{pod}' not found "
+                    f"in namespace '{namespace}'.\r\n"
+                )
         elif status == 403:
             message = (
                 "\r\nERROR: Access denied (403).\r\n"
