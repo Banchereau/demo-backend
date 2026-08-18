@@ -8,6 +8,7 @@ from app.core import APP_NAME, APP_VERSION
 from app.api.logs import router as logs_router
 from app.api.database import router as database_router
 from app.api.auth import router as auth_router
+from app.api.users import router as users_router
 
 app = FastAPI(
     title="Demo Backend",
@@ -58,3 +59,4 @@ app.include_router(logs_router)
 app.include_router(exec.router)
 app.include_router(database_router)
 app.include_router(auth_router)
+app.include_router(users_router)

@@ -5,7 +5,8 @@ from app.core.security import (
     get_current_user,
     get_current_user_ws,
 )
-from app.db.models.user import User
+from app.db.models.user import User, UserRole
+from app.db.models.user import UserRole
 from app.main import app
 
 
@@ -38,6 +39,7 @@ def authenticated_client():
 def authenticated_ws_client():
     async def override_get_current_user_ws():
         return User(
+            role=UserRole.OPERATOR,
             username="testuser",
             email="test@example.com",
             hashed_password="test",

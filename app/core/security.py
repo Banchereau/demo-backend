@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
+from collections.abc import Callable
 
 import jwt
 from fastapi import (
@@ -15,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.db.models.user import User
+from app.db.models.user import User, UserRole
 from app.repositories.user import UserRepository
 
 
@@ -123,3 +124,42 @@ async def get_current_user_ws(
         raise WebSocketDisconnect()
 
     return user
+
+
+def require_role(required_role: UserRole) -> Callable:
+    async def role_checker(
+        current_user: User = Depends(get_current_user),
+    ) -> User:
+        role_hierarchy = {
+            UserRole.VIEWER: 0,
+            UserRole.OPERATOR: 1,
+            UserRole.ADMIN: 2,
+        }
+
+        if role_hierarchy[current_user.role] < role_hierarchy[required_role]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions",
+            )
+
+        return current_user
+
+    return role_checker
+
+
+def require_role_ws(required_role: UserRole) -> Callable:
+    async def role_checker(
+        current_user: User = Depends(get_current_user_ws),
+    ) -> User:
+        role_hierarchy = {
+            UserRole.VIEWER: 0,
+            UserRole.OPERATOR: 1,
+            UserRole.ADMIN: 2,
+        }
+
+        if role_hierarchy[current_user.role] < role_hierarchy[required_role]:
+            raise WebSocketDisconnect(code=1008)
+
+        return current_user
+
+    return role_checker

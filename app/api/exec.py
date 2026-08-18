@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from kubernetes.client.exceptions import ApiException
 
 from app.services.pod_exec import connect_pod_exec
-from app.core.security import get_current_user_ws
+from app.core.security import require_role_ws
+from app.db.models.user import UserRole
 from app.core.config import settings
 
 router = APIRouter(
@@ -65,7 +66,7 @@ async def exec_pod(
     namespace: str,
     pod: str,
     container: str,
-    current_user=Depends(get_current_user_ws),
+    current_user=Depends(require_role_ws(UserRole.OPERATOR)),
 ):
     if not is_exec_namespace_allowed(
         namespace,

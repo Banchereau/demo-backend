@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from app.db.models.user import User
+from app.db.models.user import User, UserRole
 
 
 def test_register_success(client, monkeypatch):
@@ -15,6 +15,7 @@ def test_register_success(client, monkeypatch):
                 email=data.email,
                 hashed_password="hashed-password",
                 is_active=True,
+                role=UserRole.VIEWER,
                 created_at=datetime.now(timezone.utc),
             )
 
@@ -105,6 +106,7 @@ def test_login_success(client, monkeypatch):
         email="test@example.com",
         hashed_password="hashed-password",
         is_active=True,
+        role=UserRole.VIEWER,
         created_at=datetime.now(timezone.utc),
     )
 
@@ -177,6 +179,7 @@ def test_me_success(client):
         email="test@example.com",
         hashed_password="hashed-password",
         is_active=True,
+        role=UserRole.VIEWER,
         created_at=datetime.now(timezone.utc),
     )
 
