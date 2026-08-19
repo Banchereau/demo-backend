@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Deployment(BaseModel):
@@ -20,3 +20,7 @@ class RolloutRevision(BaseModel):
     image: str
     created_at: datetime | None
     is_current: bool
+
+
+class DeploymentScaleRequest(BaseModel):
+    replicas: int = Field(ge=0)

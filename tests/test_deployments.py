@@ -2,6 +2,9 @@ from unittest.mock import patch
 
 from kubernetes.client.exceptions import ApiException
 
+from app.core.config import settings
+from app.services.kubernetes import scale_deployment
+
 
 def test_deployments(authenticated_client):
     mock_deployments = [
@@ -121,3 +124,163 @@ def test_deployment_rollouts_kubernetes_error(authenticated_client):
     assert response.json() == {
         "detail": "Forbidden"
     }
+
+
+def test_restart_deployment_viewer_forbidden(
+    authenticated_client,
+):
+    response = authenticated_client.post(
+        "/deployments/default/demo-backend/restart"
+    )
+
+    assert response.status_code == 403
+    assert response.json() == {
+        "detail": "Insufficient permissions"
+    }
+
+
+def test_restart_deployment_operator(
+    operator_client,
+):
+    with patch(
+        "app.api.deployments.restart_deployment"
+    ) as mock_restart:
+        response = operator_client.post(
+            "/deployments/default/demo-backend/restart"
+        )
+
+    assert response.status_code == 204
+
+    mock_restart.assert_called_once_with(
+        namespace="default",
+        deployment_name="demo-backend",
+    )
+
+
+def test_restart_deployment_admin(
+    admin_client,
+):
+    with patch(
+        "app.api.deployments.restart_deployment"
+    ) as mock_restart:
+        response = admin_client.post(
+            "/deployments/default/demo-backend/restart"
+        )
+
+    assert response.status_code == 204
+
+    mock_restart.assert_called_once_with(
+        namespace="default",
+        deployment_name="demo-backend",
+    )
+
+
+def test_scale_deployment_viewer_forbidden(
+    authenticated_client,
+):
+    response = authenticated_client.post(
+        "/deployments/default/demo-backend/scale",
+        json={"replicas": 2},
+    )
+
+    assert response.status_code == 403
+    assert response.json() == {
+        "detail": "Insufficient permissions"
+    }
+
+
+def test_scale_deployment_operator(
+    operator_client,
+):
+    with patch(
+        "app.api.deployments.scale_deployment"
+    ) as mock_scale:
+        response = operator_client.post(
+            "/deployments/default/demo-backend/scale",
+            json={"replicas": 3},
+        )
+
+    assert response.status_code == 204
+
+    mock_scale.assert_called_once_with(
+        namespace="default",
+        deployment_name="demo-backend",
+        replicas=3,
+    )
+
+
+def test_scale_deployment_admin(
+    admin_client,
+):
+    with patch(
+        "app.api.deployments.scale_deployment"
+    ) as mock_scale:
+        response = admin_client.post(
+            "/deployments/default/demo-backend/scale",
+            json={"replicas": 3},
+        )
+
+    assert response.status_code == 204
+
+    mock_scale.assert_called_once_with(
+        namespace="default",
+        deployment_name="demo-backend",
+        replicas=3,
+    )
+
+
+def test_scale_deployment_max_replicas(
+    operator_client,
+):
+    with patch(
+        "app.api.deployments.scale_deployment",
+        side_effect=ValueError(
+            "Maximum deployment replicas is 5"
+        ),
+    ) as mock_scale:
+        response = operator_client.post(
+            "/deployments/default/demo-backend/scale",
+            json={"replicas": 6},
+        )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "detail": "Maximum deployment replicas is 5"
+    }
+
+    mock_scale.assert_called_once_with(
+        namespace="default",
+        deployment_name="demo-backend",
+        replicas=6,
+    )
+
+
+def test_scale_deployment_negative_replicas(
+    operator_client,
+):
+    response = operator_client.post(
+        "/deployments/default/demo-backend/scale",
+        json={"replicas": -1},
+    )
+
+    assert response.status_code == 422
+
+
+def test_scale_deployment_service_rejects_above_max():
+    with patch(
+        "app.services.kubernetes.get_apps_v1"
+    ) as mock_get_apps:
+        try:
+            scale_deployment(
+                namespace="default",
+                deployment_name="demo-backend",
+                replicas=settings.max_deployment_replicas + 1,
+            )
+            assert False, "Expected ValueError"
+        except ValueError as e:
+            assert str(e) == (
+                f"Maximum deployment replicas is "
+                f"{settings.max_deployment_replicas}"
+            )
+
+        mock_get_apps.assert_not_called()

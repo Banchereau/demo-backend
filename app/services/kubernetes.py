@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-
 from kubernetes import client, config
 
 from app.core.kubernetes import (
@@ -7,6 +6,7 @@ from app.core.kubernetes import (
     get_core_v1,
     get_networking_v1,
 )
+from app.core.config import settings
 
 
 def format_age(created_at):
@@ -509,3 +509,65 @@ def get_deployment_rollouts(
     )
 
     return rollouts
+
+
+def restart_deployment(
+    namespace: str,
+    deployment_name: str,
+):
+    apps_v1 = get_apps_v1()
+
+    deployment = apps_v1.read_namespaced_deployment(
+        name=deployment_name,
+        namespace=namespace,
+    )
+
+    annotations = (
+        deployment.spec.template.metadata.annotations or {}
+    )
+
+    annotations["xcodewhisperer.fr/restarted-at"] = (
+        datetime.now(timezone.utc).isoformat()
+    )
+
+    body = {
+        "spec": {
+            "template": {
+                "metadata": {
+                    "annotations": annotations,
+                },
+            },
+        },
+    }
+
+    return apps_v1.patch_namespaced_deployment(
+        name=deployment_name,
+        namespace=namespace,
+        body=body,
+    )
+
+
+def scale_deployment(
+    namespace: str,
+    deployment_name: str,
+    replicas: int,
+):
+    if replicas > settings.max_deployment_replicas:
+        raise ValueError(
+            f"Maximum deployment replicas is "
+            f"{settings.max_deployment_replicas}"
+        )
+
+    apps_v1 = get_apps_v1()
+
+    body = {
+        "spec": {
+            "replicas": replicas,
+        },
+    }
+
+    return apps_v1.patch_namespaced_deployment(
+        name=deployment_name,
+        namespace=namespace,
+        body=body,
+    )

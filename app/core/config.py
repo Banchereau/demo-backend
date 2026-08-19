@@ -30,5 +30,9 @@ class Settings:
         if namespace.strip()
     )
 
+    max_deployment_replicas: int = int(
+        os.environ.get("MAX_DEPLOYMENT_REPLICAS", "5")
+    )
+
 
 settings = Settings()
