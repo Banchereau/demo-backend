@@ -17,7 +17,11 @@ class UserService:
     def __init__(self, repository: UserRepository):
         self.repository = repository
 
-    async def create_user(self, data: UserCreate) -> User:
+    async def create_user(
+        self,
+        data: UserCreate,
+        force_password_change: bool = False,
+    ) -> User:
         existing_username = await self.repository.get_by_username(
             data.username
         )
@@ -38,6 +42,7 @@ class UserService:
             username=data.username,
             email=data.email,
             hashed_password=hashed_password,
+            must_change_password=force_password_change,
         )
 
     async def authenticate_user(
@@ -55,5 +60,25 @@ class UserService:
 
         if not user.is_active:
             raise InvalidCredentialsError()
+
+        return user
+
+    async def change_password(
+        self,
+        user: User,
+        current_password: str,
+        new_password: str,
+    ) -> User:
+        if not verify_password(
+            current_password,
+            user.hashed_password,
+        ):
+            raise InvalidCredentialsError()
+
+        user.hashed_password = hash_password(new_password)
+        user.must_change_password = False
+
+        await self.repository.db.commit()
+        await self.repository.db.refresh(user)
 
         return user

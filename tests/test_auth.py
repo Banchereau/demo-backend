@@ -16,6 +16,7 @@ def test_register_success(client, monkeypatch):
                 hashed_password="hashed-password",
                 is_active=True,
                 role=UserRole.VIEWER,
+                must_change_password=False,
                 created_at=datetime.now(timezone.utc),
             )
 
@@ -107,6 +108,7 @@ def test_login_success(client, monkeypatch):
         hashed_password="hashed-password",
         is_active=True,
         role=UserRole.VIEWER,
+        must_change_password=False,
         created_at=datetime.now(timezone.utc),
     )
 
@@ -180,6 +182,7 @@ def test_me_success(client):
         hashed_password="hashed-password",
         is_active=True,
         role=UserRole.VIEWER,
+        must_change_password=False,
         created_at=datetime.now(timezone.utc),
     )
 

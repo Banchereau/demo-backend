@@ -40,11 +40,13 @@ class UserRepository:
         username: str,
         email: str,
         hashed_password: str,
+        must_change_password: bool = False,
     ) -> User:
         user = User(
             username=username,
             email=email,
             hashed_password=hashed_password,
+            must_change_password=must_change_password,
         )
 
         self.db.add(user)
