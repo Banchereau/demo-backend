@@ -51,12 +51,8 @@ async def write_pod_input(
     websocket: WebSocket,
     shell,
 ):
-    while True:
+    while shell.is_open():
         data = await websocket.receive_text()
-
-        if not shell.is_open():
-            break
-
         shell.write_stdin(data)
 
 

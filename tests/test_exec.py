@@ -161,13 +161,13 @@ def test_exec_websocket_authenticated(
         ) as websocket:
             message = websocket.receive_text()
 
-        assert message == "Connected to pod shell\r\n"
+            assert message == "Connected to pod shell\r\n"
 
-        mock_connect.assert_called_once_with(
-            "default",
-            "demo-pod",
-            "backend",
-        )
+            mock_connect.assert_called_once_with(
+                "default",
+                "demo-pod",
+                "backend",
+            )
 
 
 def test_exec_websocket_invalid_container_does_not_start_shell(
