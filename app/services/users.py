@@ -12,6 +12,14 @@ class InvalidCredentialsError(Exception):
     pass
 
 
+class UserNotFoundError(Exception):
+    pass
+
+
+class UserSelfDeletionError(Exception):
+    pass
+
+
 class UserService:
 
     def __init__(self, repository: UserRepository):
@@ -45,7 +53,6 @@ class UserService:
             must_change_password=force_password_change,
             role=getattr(data, "role", UserRole.VIEWER),
         )
-
 
     async def authenticate_user(
         self,
@@ -84,3 +91,20 @@ class UserService:
         await self.repository.db.refresh(user)
 
         return user
+
+    async def delete_user(
+        self,
+        user_id,
+        current_user: User,
+    ) -> None:
+        if user_id == current_user.id:
+            raise UserSelfDeletionError(
+                "You cannot delete your own account"
+            )
+
+        user = await self.repository.get_by_id(user_id)
+
+        if user is None:
+            raise UserNotFoundError("User not found")
+
+        await self.repository.delete(user)
