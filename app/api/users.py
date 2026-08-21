@@ -42,8 +42,6 @@ async def create_user(
             data,
             force_password_change=True,
         )
-
-        user.role = data.role
         return user
 
     except UserAlreadyExistsError as exc:

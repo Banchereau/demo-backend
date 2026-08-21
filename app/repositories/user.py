@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.user import User
+from app.db.models.user import User, UserRole
 
 
 class UserRepository:
@@ -41,12 +41,14 @@ class UserRepository:
         email: str,
         hashed_password: str,
         must_change_password: bool = False,
+        role: UserRole = UserRole.VIEWER,
     ) -> User:
         user = User(
             username=username,
             email=email,
             hashed_password=hashed_password,
             must_change_password=must_change_password,
+            role=role,
         )
 
         self.db.add(user)

@@ -1,5 +1,5 @@
 from app.core.security import hash_password, verify_password
-from app.db.models.user import User
+from app.db.models.user import User, UserRole
 from app.repositories.user import UserRepository
 from app.schemas.user import UserCreate
 
@@ -43,7 +43,9 @@ class UserService:
             email=data.email,
             hashed_password=hashed_password,
             must_change_password=force_password_change,
+            role=getattr(data, "role", UserRole.VIEWER),
         )
+
 
     async def authenticate_user(
         self,
